@@ -111,6 +111,7 @@ fun SettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         icon = {
             Icon(
                 painter = painterResource(R.drawable.ic_settings),
@@ -279,6 +280,7 @@ fun SettingsDialog(
     if (showBandSelectDialog) {
         AlertDialog(
             onDismissRequest = { showBandSelectDialog = false },
+            shape = MaterialTheme.shapes.extraLarge,
             title = { Text("Select Regional Band") },
             text = {
                 LazyColumn(modifier = Modifier.heightIn(max = 350.dp)) {
@@ -288,7 +290,7 @@ fun SettingsDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(MaterialTheme.shapes.small)
                                 .clickable {
                                     onSetRegionalBand(value)
                                     showBandSelectDialog = false
@@ -296,7 +298,7 @@ fun SettingsDialog(
                                         showUserDefinedDialog = true
                                     }
                                 }
-                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
@@ -326,6 +328,7 @@ fun SettingsDialog(
     if (showSwitchToUserDefinedPrompt) {
         AlertDialog(
             onDismissRequest = { showSwitchToUserDefinedPrompt = false },
+            shape = MaterialTheme.shapes.extraLarge,
             title = { Text("Customize Band & Spacing") },
             text = {
                 Text(
@@ -373,7 +376,7 @@ private fun SettingClickableRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.small)
             .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surface
     ) {
@@ -434,6 +437,7 @@ private fun UserDefinedConfigDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = { Text("User Defined Band") },
         text = {
             Column {

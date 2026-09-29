@@ -142,7 +142,8 @@ fun FmDisplayCard(
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 64.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = (-1).sp
+                        letterSpacing = (-1).sp,
+                        fontFeatureSettings = "tnum"
                     ),
                     color = if (uiState.isPoweredOn) {
                         MaterialTheme.colorScheme.onSurface
