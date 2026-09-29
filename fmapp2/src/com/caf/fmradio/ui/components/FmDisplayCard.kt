@@ -97,10 +97,11 @@ fun FmDisplayCard(
                         text = if (uiState.isStereo) "STEREO" else "MONO",
                         active = uiState.isPoweredOn
                     )
-                    if (uiState.rdsSupported) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        StatusBadge(text = "RDS", active = true)
-                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    StatusBadge(
+                        text = "RDS",
+                        active = uiState.isPoweredOn && uiState.rdsSupported
+                    )
                 }
 
                 // Recording or Sleep Timer Indicator

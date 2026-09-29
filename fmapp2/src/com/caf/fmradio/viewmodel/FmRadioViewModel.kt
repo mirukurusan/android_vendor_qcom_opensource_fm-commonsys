@@ -232,7 +232,10 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     isPoweredOn = false,
                     isRecording = false,
                     isScanning = false,
-                    isSeeking = false
+                    isSeeking = false,
+                    rdsSupported = false,
+                    stationName = "",
+                    radioText = ""
                 )
             }
             stopRecordTimer()
@@ -597,7 +600,8 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     currentFrequencyKHz = tuned,
                     stationName = ps,
                     radioText = rt,
-                    isSeeking = false
+                    isSeeking = false,
+                    rdsSupported = false
                 )
             }
         }
@@ -695,9 +699,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onStationRDSSupported(isRdsSupported: Boolean) {
         viewModelScope.launch {
-            if (isRdsSupported) {
-                _uiState.update { it.copy(rdsSupported = true) }
-            }
+            _uiState.update { it.copy(rdsSupported = isRdsSupported) }
         }
     }
 
