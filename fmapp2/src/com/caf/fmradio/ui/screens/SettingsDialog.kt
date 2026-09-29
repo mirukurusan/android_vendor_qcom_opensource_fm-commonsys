@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -62,7 +62,7 @@ fun SettingsDialog(
                     value = "${uiState.minFrequencyKHz / 1000.0} - ${uiState.maxFrequencyKHz / 1000.0} MHz"
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 // Channel Spacing
                 SettingInfoRow(
@@ -70,7 +70,7 @@ fun SettingsDialog(
                     value = "${uiState.stepSizeKHz} kHz"
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 // Audio Mode
                 SettingInfoRow(
@@ -78,7 +78,7 @@ fun SettingsDialog(
                     value = if (uiState.isStereo) "Stereo" else "Mono"
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 // Speaker / Headset
                 SettingInfoRow(
@@ -86,7 +86,7 @@ fun SettingsDialog(
                     value = if (uiState.isSpeakerOn) "Speaker (Loudspeaker)" else "Wired Headset"
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 // Engineering Diagnostics button
                 OutlinedButton(

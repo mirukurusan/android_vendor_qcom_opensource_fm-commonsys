@@ -157,6 +157,8 @@ class FmServiceRepository {
         override fun setChDetThCb(status: Int) {}
         override fun DefDataWrtCb(status: Int) {}
         override fun setBlendCb(status: Int) {}
+        override fun getStationParamCb(valArg: Int, status: Int) {}
+        override fun getStationDbgParamCb(valArg: Int, status: Int) {}
     }
 
     private val serviceConnection = object : ServiceConnection {
