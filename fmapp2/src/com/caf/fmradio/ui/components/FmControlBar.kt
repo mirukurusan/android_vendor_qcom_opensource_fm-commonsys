@@ -57,6 +57,7 @@ fun FmControlBar(
     onToggleSpeaker: () -> Unit,
     onToggleRecording: () -> Unit,
     onStartScan: () -> Unit,
+    onCancelScan: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val enabled = uiState.isPoweredOn
@@ -189,10 +190,11 @@ fun FmControlBar(
 
                 // Scan / Auto search
                 UtilityButton(
-                    label = if (uiState.isScanning) "Scanning" else "Scan",
+                    label = if (uiState.isScanning) "Stop Scan" else "Scan",
                     active = uiState.isScanning,
-                    enabled = enabled && !uiState.isScanning,
-                    onClick = onStartScan
+                    activeColor = MaterialTheme.colorScheme.tertiary,
+                    enabled = enabled,
+                    onClick = if (uiState.isScanning) onCancelScan else onStartScan
                 )
             }
         }

@@ -172,6 +172,7 @@ fun FmMainScreen(
                 onToggleSpeaker = { viewModel.toggleSpeaker() },
                 onToggleRecording = { viewModel.toggleRecording() },
                 onStartScan = { viewModel.startScan() },
+                onCancelScan = { viewModel.cancelScan() },
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }
@@ -254,6 +255,7 @@ fun FmMainScreen(
             onTune = { freq -> viewModel.tune(freq) },
             onTogglePreset = { freq -> viewModel.togglePreset(freq) },
             onStartScan = { viewModel.startScan() },
+            onCancelScan = { viewModel.cancelScan() },
             onDismiss = { showStationSheet = false }
         )
     }

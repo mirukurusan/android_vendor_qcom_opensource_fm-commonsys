@@ -21,9 +21,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.caf.fmradio.FMRadio
 import com.caf.fmradio.FmSharedPreferences
 import com.caf.fmradio.PresetStation
 import com.caf.fmradio.data.FmServiceRepository
@@ -105,6 +107,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         }
 
         val presets = loadPresetsFromPreferences()
+        val scanned = loadScannedStations()
 
         _uiState.update {
             it.copy(
@@ -112,8 +115,63 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 maxFrequencyKHz = maxFreq,
                 stepSizeKHz = stepSize,
                 currentFrequencyKHz = tuned,
-                presets = presets
+                presets = presets,
+                scannedStations = scanned
             )
+        }
+    }
+
+    private fun saveScannedStations(stations: List<FmStation>) {
+        try {
+            val sp: SharedPreferences = getApplication<Application>().getSharedPreferences(FMRadio.SCAN_STATION_PREFS_NAME, Context.MODE_PRIVATE)
+            val editor: SharedPreferences.Editor = sp.edit()
+            editor.clear()
+            var index = 0
+            for (st in stations) {
+                index++
+                val name = st.name.ifBlank { "Station $index" }
+                editor.putString(FMRadio.STATION_NAME + index, name)
+                editor.putInt(FMRadio.STATION_FREQUENCY + index, st.frequencyKHz)
+            }
+            editor.putInt(FMRadio.NUM_OF_STATIONS, index)
+            editor.apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving scanned stations", e)
+        }
+    }
+
+    private fun loadScannedStations(): List<FmStation> {
+        val list = mutableListOf<FmStation>()
+        try {
+            val sp: SharedPreferences = getApplication<Application>().getSharedPreferences(FMRadio.SCAN_STATION_PREFS_NAME, Context.MODE_PRIVATE)
+            val count = sp.getInt(FMRadio.NUM_OF_STATIONS, 0)
+            for (i in 1..count) {
+                val name = sp.getString(FMRadio.STATION_NAME + i, "") ?: ""
+                val freq = sp.getInt(FMRadio.STATION_FREQUENCY + i, 0)
+                if (freq > 0) {
+                    list.add(FmStation(frequencyKHz = freq, name = name))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading scanned stations", e)
+        }
+        return list
+    }
+
+    private fun autoPopulatePresetsIfEmpty(stations: List<FmStation>) {
+        try {
+            val curIndex = FmSharedPreferences.getCurrentListIndex()
+            val presetList = FmSharedPreferences.getStationList(curIndex)
+            val currentCount = presetList?.stationCount ?: 0
+            if (currentCount == 0 && stations.isNotEmpty()) {
+                for (st in stations.take(12)) {
+                    val name = st.name.ifBlank { st.displayName }
+                    FmSharedPreferences.addStation(curIndex, PresetStation(name, st.frequencyKHz))
+                }
+                FmSharedPreferences(getApplication()).Save()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error auto-populating presets", e)
         }
     }
 
@@ -268,6 +326,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 val newStation = PresetStation(stationName, frequencyKHz)
                 FmSharedPreferences.addStation(curIndex, newStation)
             }
+            FmSharedPreferences(getApplication()).Save()
             _uiState.update { it.copy(presets = loadPresetsFromPreferences()) }
         } catch (e: Exception) {
             Log.e(TAG, "Error toggling preset", e)
@@ -437,8 +496,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     currentFrequencyKHz = tuned,
                     stationName = ps,
                     radioText = rt,
-                    isSeeking = false,
-                    isScanning = false
+                    isSeeking = false
                 )
             }
         }
@@ -475,7 +533,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onSearchComplete(scannedFrequencies: List<Int>) {
         viewModelScope.launch {
-            val wasScanning = _uiState.value.isScanning
+            val wasScanning = _uiState.value.isScanning || scannedFrequencies.isNotEmpty()
             val tuned = try {
                 FmSharedPreferences.getTunedFrequency().takeIf { it > 0 } ?: _uiState.value.currentFrequencyKHz
             } catch (e: Exception) {
@@ -487,15 +545,21 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
             Log.d(TAG, "onSearchComplete: wasScanning=$wasScanning, tuned=$tuned, ps=$ps, freqsCount=${scannedFrequencies.size}")
 
             if (wasScanning) {
-                val stations = scannedFrequencies.map { freq ->
+                val sortedFrequencies = scannedFrequencies.distinct().sorted()
+                val stations = sortedFrequencies.map { freq ->
                     FmStation(frequencyKHz = freq)
                 }
+                saveScannedStations(stations)
+                autoPopulatePresetsIfEmpty(stations)
+                val updatedPresets = loadPresetsFromPreferences()
+
                 _uiState.update {
                     it.copy(
                         currentFrequencyKHz = tuned,
                         stationName = ps,
                         radioText = rt,
                         scannedStations = stations,
+                        presets = updatedPresets,
                         isScanning = false,
                         isSeeking = false,
                         userMessage = if (stations.isEmpty()) "Search complete: No stations found" else "Found ${stations.size} stations"

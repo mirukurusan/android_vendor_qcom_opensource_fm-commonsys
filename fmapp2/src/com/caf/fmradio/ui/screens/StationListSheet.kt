@@ -66,6 +66,7 @@ fun StationListSheet(
     onTune: (Int) -> Unit,
     onTogglePreset: (Int) -> Unit,
     onStartScan: () -> Unit,
+    onCancelScan: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -93,10 +94,10 @@ fun StationListSheet(
                 )
 
                 FilledTonalButton(
-                    onClick = onStartScan,
-                    enabled = uiState.isPoweredOn && !uiState.isScanning
+                    onClick = if (uiState.isScanning) onCancelScan else onStartScan,
+                    enabled = uiState.isPoweredOn
                 ) {
-                    Text(if (uiState.isScanning) "Scanning..." else "Scan All")
+                    Text(if (uiState.isScanning) "Stop Scan" else "Scan All")
                 }
             }
 

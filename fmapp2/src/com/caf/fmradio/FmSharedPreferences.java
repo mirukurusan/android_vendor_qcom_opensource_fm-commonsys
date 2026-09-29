@@ -174,7 +174,7 @@ public class FmSharedPreferences
 
    public static int mDefaultCountryIndex = REGIONAL_BAND_NORTH_AMERICA;
 
-   FmSharedPreferences(Context context){
+   public FmSharedPreferences(Context context){
       mContext = context.getApplicationContext();
       mFMConfiguration = new FmConfig();
       Load();
