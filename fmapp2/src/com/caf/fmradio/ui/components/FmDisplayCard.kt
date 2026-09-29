@@ -83,7 +83,7 @@ fun FmDisplayCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Top Status Badges Row
@@ -128,7 +128,7 @@ fun FmDisplayCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             val isTuning = previewFrequencyKHz != null && previewFrequencyKHz != uiState.currentFrequencyKHz
             val displayedFreqKHz = previewFrequencyKHz ?: uiState.currentFrequencyKHz
@@ -143,7 +143,7 @@ fun FmDisplayCard(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.medium)
                     .clickable(enabled = uiState.isPoweredOn, onClick = onFrequencyClick)
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .padding(horizontal = 12.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
@@ -169,46 +169,56 @@ fun FmDisplayCard(
                 )
             }
 
-            // Station Name (RDS Program Service)
+            // Station Name (RDS Program Service / Favorite / Tuning status)
             val matchingFavorite = if (isTuning) {
                 uiState.favorites.find { it.frequencyKHz == displayedFreqKHz }
             } else null
 
-            val stationTitle = when {
-                !uiState.isPoweredOn -> "Radio is OFF"
+            val stationTitle: String? = when {
+                !uiState.isPoweredOn -> null
                 isTuning -> matchingFavorite?.name ?: "Tuning..."
                 uiState.isScanning -> "Scanning frequencies..."
                 uiState.isSeeking -> "Seeking station..."
+                matchingFavorite != null -> matchingFavorite.name
                 uiState.stationName.isNotBlank() -> uiState.stationName
-                else -> "FM Radio"
+                else -> null
             }
 
-            Text(
-                text = stationTitle,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // RadioText (RDS RT) with Marquee ticker
-            val radioText = when {
-                !uiState.isPoweredOn -> "Tap power button to turn on"
+            val subtitleText: String? = when {
+                !uiState.isPoweredOn -> "Radio is OFF"
                 isTuning -> "Release to tune frequency"
                 uiState.radioText.isNotBlank() -> uiState.radioText
-                else -> "Ready"
+                else -> null
             }
 
-            Text(
-                text = radioText,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .basicMarquee(iterations = Int.MAX_VALUE)
-                    .padding(horizontal = 8.dp)
-            )
+            if (stationTitle != null || subtitleText != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            stationTitle?.let { title ->
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+            }
+
+            if (stationTitle != null && subtitleText != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+            }
+
+            subtitleText?.let { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(iterations = Int.MAX_VALUE)
+                        .padding(horizontal = 8.dp)
+                )
+            }
         }
     }
 }
