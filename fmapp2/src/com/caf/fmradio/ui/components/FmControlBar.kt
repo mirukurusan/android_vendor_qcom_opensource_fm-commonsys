@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
@@ -41,9 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.caf.fmradio.R
 import com.caf.fmradio.ui.theme.RadioRecordingRed
 import com.caf.fmradio.viewmodel.FmUiState
 
@@ -80,7 +83,11 @@ fun FmControlBar(
                 enabled = enabled && !uiState.isSeeking && !uiState.isScanning,
                 modifier = Modifier.size(52.dp)
             ) {
-                Text("<<", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Icon(
+                    painter = painterResource(R.drawable.ic_fast_rewind),
+                    contentDescription = "Seek Down",
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
             // Step Down (-)
@@ -89,7 +96,11 @@ fun FmControlBar(
                 enabled = enabled,
                 modifier = Modifier.size(46.dp)
             ) {
-                Text("-", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Icon(
+                    painter = painterResource(R.drawable.ic_chevron_left),
+                    contentDescription = "Step Down",
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
             // Central Power / Play Button
@@ -104,25 +115,23 @@ fun FmControlBar(
                     }
                 )
             ) {
+                val tint = if (uiState.isPoweredOn) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "⏻",
-                        color = if (uiState.isPoweredOn) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
+                    Icon(
+                        painter = painterResource(R.drawable.ic_power_settings_new),
+                        contentDescription = if (uiState.isPoweredOn) "Power Off" else "Power On",
+                        modifier = Modifier.size(28.dp),
+                        tint = tint
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = if (uiState.isPoweredOn) "ON" else "OFF",
-                        color = if (uiState.isPoweredOn) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontSize = 11.sp,
+                        color = tint,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -134,7 +143,11 @@ fun FmControlBar(
                 enabled = enabled,
                 modifier = Modifier.size(46.dp)
             ) {
-                Text("+", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Icon(
+                    painter = painterResource(R.drawable.ic_chevron_right),
+                    contentDescription = "Step Up",
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
             // Seek Up (>>)
@@ -143,7 +156,11 @@ fun FmControlBar(
                 enabled = enabled && !uiState.isSeeking && !uiState.isScanning,
                 modifier = Modifier.size(52.dp)
             ) {
-                Text(">>", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Icon(
+                    painter = painterResource(R.drawable.ic_fast_forward),
+                    contentDescription = "Seek Up",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
 
@@ -158,12 +175,13 @@ fun FmControlBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 16.dp),
+                    .padding(vertical = 8.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Speaker / Headset
                 UtilityButton(
+                    iconRes = if (uiState.isSpeakerOn) R.drawable.ic_volume_up else R.drawable.ic_headset,
                     label = if (uiState.isSpeakerOn) "Speaker" else "Headset",
                     active = uiState.isSpeakerOn,
                     enabled = enabled,
@@ -172,6 +190,7 @@ fun FmControlBar(
 
                 // Mute
                 UtilityButton(
+                    iconRes = if (uiState.isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up,
                     label = if (uiState.isMuted) "Unmute" else "Mute",
                     active = uiState.isMuted,
                     activeColor = MaterialTheme.colorScheme.error,
@@ -181,6 +200,7 @@ fun FmControlBar(
 
                 // Recording
                 UtilityButton(
+                    iconRes = if (uiState.isRecording) R.drawable.ic_stop else R.drawable.ic_fiber_manual_record,
                     label = if (uiState.isRecording) "Stop Rec" else "Record",
                     active = uiState.isRecording,
                     activeColor = RadioRecordingRed,
@@ -190,6 +210,7 @@ fun FmControlBar(
 
                 // Scan / Auto search
                 UtilityButton(
+                    iconRes = if (uiState.isScanning) R.drawable.ic_search_off else R.drawable.ic_search,
                     label = if (uiState.isScanning) "Stop Scan" else "Scan",
                     active = uiState.isScanning,
                     activeColor = MaterialTheme.colorScheme.tertiary,
@@ -203,6 +224,7 @@ fun FmControlBar(
 
 @Composable
 private fun UtilityButton(
+    iconRes: Int,
     label: String,
     active: Boolean,
     enabled: Boolean,
@@ -220,17 +242,25 @@ private fun UtilityButton(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = label,
+            modifier = Modifier.size(20.dp),
+            tint = contentColor
+        )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
             color = contentColor
         )
     }

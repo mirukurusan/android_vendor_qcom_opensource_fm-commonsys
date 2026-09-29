@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,9 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.caf.fmradio.R
 import com.caf.fmradio.data.FmStation
 import com.caf.fmradio.viewmodel.FmUiState
 
@@ -71,9 +75,23 @@ fun FmPresetRow(
             AssistChip(
                 onClick = onToggleCurrentPreset,
                 enabled = uiState.isPoweredOn,
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(
+                            if (uiState.isCurrentPreset) R.drawable.ic_star else R.drawable.ic_add
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (uiState.isCurrentPreset) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                },
                 label = {
                     Text(
-                        if (uiState.isCurrentPreset) "★ Saved" else "+ Add Preset",
+                        if (uiState.isCurrentPreset) "Saved" else "Add Preset",
                         fontSize = 12.sp
                     )
                 },
@@ -96,7 +114,7 @@ fun FmPresetRow(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             ) {
                 Text(
-                    text = "No presets saved yet. Tune and tap '+ Add Preset'.",
+                    text = "No presets saved yet. Tune and tap 'Add Preset'.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)
@@ -114,6 +132,16 @@ fun FmPresetRow(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onTune(station.frequencyKHz) },
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_star),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        } else null,
                         label = {
                             Column(modifier = Modifier.padding(vertical = 2.dp)) {
                                 Text(

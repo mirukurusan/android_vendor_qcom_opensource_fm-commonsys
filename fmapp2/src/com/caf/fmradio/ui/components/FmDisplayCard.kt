@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,9 +53,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.caf.fmradio.R
 import com.caf.fmradio.ui.theme.RadioRecordingRed
 import com.caf.fmradio.ui.theme.RadioSignalActive
 import com.caf.fmradio.viewmodel.FmUiState
@@ -114,9 +117,10 @@ fun FmDisplayCard(
                     uiState.formattedSleepCountdown?.let { countdown ->
                         Spacer(modifier = Modifier.width(6.dp))
                         StatusBadge(
-                            text = "Sleep: $countdown",
+                            text = countdown,
                             active = true,
-                            badgeColor = MaterialTheme.colorScheme.tertiary
+                            badgeColor = MaterialTheme.colorScheme.tertiary,
+                            iconRes = R.drawable.ic_timer
                         )
                     }
                 }
@@ -197,6 +201,7 @@ private fun StatusBadge(
     text: String,
     active: Boolean,
     badgeColor: Color = MaterialTheme.colorScheme.primary,
+    iconRes: Int? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -204,12 +209,25 @@ private fun StatusBadge(
         shape = RoundedCornerShape(6.dp),
         color = if (active) badgeColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = if (active) badgeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (iconRes != null) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = if (active) badgeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = if (active) badgeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
+        }
     }
 }
 

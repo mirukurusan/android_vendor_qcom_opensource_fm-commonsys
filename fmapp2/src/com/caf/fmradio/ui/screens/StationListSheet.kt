@@ -53,9 +53,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.caf.fmradio.R
 import com.caf.fmradio.data.FmStation
 import com.caf.fmradio.viewmodel.FmUiState
 
@@ -97,6 +99,14 @@ fun StationListSheet(
                     onClick = if (uiState.isScanning) onCancelScan else onStartScan,
                     enabled = uiState.isPoweredOn
                 ) {
+                    Icon(
+                        painter = painterResource(
+                            if (uiState.isScanning) R.drawable.ic_search_off else R.drawable.ic_search
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(if (uiState.isScanning) "Stop Scan" else "Scan All")
                 }
             }
@@ -113,11 +123,25 @@ fun StationListSheet(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_radio),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
                     text = { Text("Scanned (${uiState.scannedStations.size})") }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_star),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
                     text = { Text("Presets (${uiState.presets.size})") }
                 )
             }
@@ -137,7 +161,7 @@ fun StationListSheet(
                         text = if (selectedTab == 0) {
                             "No stations scanned yet.\nTap 'Scan All' to discover local stations."
                         } else {
-                            "No presets saved.\nTap '+ Add Preset' on any playing station."
+                            "No presets saved.\nTap 'Add Preset' on any playing station."
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
@@ -207,11 +231,20 @@ private fun StationListItem(
                     )
                     if (isPlaying) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "● PLAYING",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_graphic_eq),
+                                contentDescription = "Playing",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "PLAYING",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
                 if (station.name.isNotBlank()) {
@@ -225,10 +258,13 @@ private fun StationListItem(
 
             // Star / Preset Toggle Button
             IconButton(onClick = onTogglePreset) {
-                Text(
-                    text = if (isPreset) "★" else "☆",
-                    fontSize = 20.sp,
-                    color = if (isPreset) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                Icon(
+                    painter = painterResource(
+                        if (isPreset) R.drawable.ic_star else R.drawable.ic_star_border
+                    ),
+                    contentDescription = if (isPreset) "Remove Preset" else "Add Preset",
+                    modifier = Modifier.size(24.dp),
+                    tint = if (isPreset) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
             }
         }
