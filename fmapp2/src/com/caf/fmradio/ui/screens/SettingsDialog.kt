@@ -19,6 +19,7 @@ package com.caf.fmradio.ui.screens
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,20 +29,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -93,7 +93,7 @@ fun SettingsDialog(
         }
     }
 
-    var showBandSelectDialog by remember { mutableStateOf(false) }
+    var showBandDropdown by remember { mutableStateOf(false) }
     var showUserDefinedDialog by remember { mutableStateOf(false) }
     var showSwitchToUserDefinedPrompt by remember { mutableStateOf(false) }
 
@@ -133,13 +133,55 @@ fun SettingsDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                // 1. Regional Band (Clickable)
-                SettingClickableRow(
-                    title = "Regional Band",
-                    value = currentBandName,
-                    subtitle = if (isUserDefined) "Custom frequency & step size" else "Standard broadcast region",
-                    onClick = { showBandSelectDialog = true }
-                )
+                // 1. Regional Band (Clickable with DropdownMenu)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    SettingClickableRow(
+                        title = "Regional Band",
+                        value = currentBandName,
+                        subtitle = if (isUserDefined) "Custom frequency & step size" else "Standard broadcast region",
+                        onClick = { showBandDropdown = true }
+                    )
+
+                    Box(modifier = Modifier.align(Alignment.BottomEnd)) {
+                        DropdownMenu(
+                            expanded = showBandDropdown,
+                            onDismissRequest = { showBandDropdown = false },
+                            modifier = Modifier.heightIn(max = 350.dp)
+                        ) {
+                            bandEntries.forEachIndexed { index, name ->
+                                val value = bandValues.getOrNull(index)?.toIntOrNull() ?: index
+                                val selected = value == uiState.regionalBandIndex
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    trailingIcon = if (selected) {
+                                        {
+                                            Text(
+                                                text = "✓",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    } else null,
+                                    onClick = {
+                                        showBandDropdown = false
+                                        onSetRegionalBand(value)
+                                        if (value == FmSharedPreferences.REGIONAL_BAND_USER_DEFINED) {
+                                            showUserDefinedDialog = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
@@ -277,53 +319,6 @@ fun SettingsDialog(
         }
     )
 
-    // Sub-dialog 1: Regional Band Picker Dialog
-    if (showBandSelectDialog) {
-        AlertDialog(
-            onDismissRequest = { showBandSelectDialog = false },
-            shape = MaterialTheme.shapes.extraLarge,
-            title = { Text("Select Regional Band") },
-            text = {
-                LazyColumn(modifier = Modifier.heightIn(max = 350.dp)) {
-                    itemsIndexed(bandEntries) { index, name ->
-                        val value = bandValues.getOrNull(index)?.toIntOrNull() ?: index
-                        val selected = value == uiState.regionalBandIndex
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.small)
-                                .clickable {
-                                    onSetRegionalBand(value)
-                                    showBandSelectDialog = false
-                                    if (value == FmSharedPreferences.REGIONAL_BAND_USER_DEFINED) {
-                                        showUserDefinedDialog = true
-                                    }
-                                }
-                                .padding(vertical = 10.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selected,
-                                onClick = null
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showBandSelectDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 
     // Sub-dialog 2: Prompt to switch to User Defined
     if (showSwitchToUserDefinedPrompt) {
