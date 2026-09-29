@@ -235,6 +235,18 @@ public class FMRadioService extends Service
    private static final int DISABLE_SOFT_MUTE = 0;
    private static final int ENABLE_SOFT_MUTE = 1;
    private static final int DEFAULT_VOLUME_INDEX = 6;
+   /* Audio HAL parameter keys of the prebuilt LG audio HAL. It does not
+    * implement the AOSP/CAF key "fm_routing"; the FM device list is driven
+    * by the keys below instead:
+    *   fm_speakerphone=on|off  -> FM usecase output device list
+    * The LG HAL also knows "routing=<device>" which would re-route and
+    * re-apply the volume in one step, but AudioFlinger rejects that key for
+    * app callers (-EINVAL), so FM is re-routed with handle_fm instead.
+    * (Note: Antenna LNA is handled via FM_LNA_ENABLE in mixer_paths).
+    */
+   private static final String FM_PARAM_SPEAKERPHONE = "fm_speakerphone";
+   private static final String FM_PARAM_HANDLE_FM = "handle_fm";
+   private static final int FM_VOLUME_RESTORE_DELAY_MS = 400;
    private static Object mNotchFilterLock = new Object();
    private static Object mNotificationLock = new Object();
 
@@ -600,11 +612,11 @@ public class FMRadioService extends Service
                /* This case usually happens, when FM is force killed through settings app
                 * and we don't get chance to disable Hardware LoopBack.
                 * Hardware LoopBack will be running,disable it first and enable again
-                * using routing set param to audio */
+                * with a handle_fm set param (without the FM bit = stop) */
                Log.d(LOGTAG," FM HardwareLoopBack Active, disable it first and enable again");
-               mAudioDeviceType =
-                  AudioDeviceInfo.TYPE_WIRED_HEADPHONES | AudioSystem.DEVICE_OUT_FM;
-               String keyValPairs = new String("fm_routing="+mAudioDeviceType);
+               audioManager.setParameters(FM_PARAM_SPEAKERPHONE + "=off");
+               String keyValPairs = new String(FM_PARAM_HANDLE_FM + "=" +
+                  AudioDeviceInfo.TYPE_WIRED_HEADPHONES);
                Log.d(LOGTAG, "keyValPairs = "+keyValPairs);
                audioManager.setParameters(keyValPairs);
             }
@@ -621,7 +633,7 @@ public class FMRadioService extends Service
             mIsFMDeviceLoopbackActive = false;
             mAudioDeviceType = mAudioDevice;
         }
-        String keyValPairs = new String("handle_fm="+mAudioDeviceType);
+        String keyValPairs = new String(FM_PARAM_HANDLE_FM + "=" + mAudioDeviceType);
         Log.d(LOGTAG, "keyValPairs = "+keyValPairs);
         audioManager.setParameters(keyValPairs);
 
@@ -1023,6 +1035,23 @@ public class FMRadioService extends Service
         }
     };
 
+    /* The prebuilt LG audio HAL finishes its FM start sequence by writing the FM
+     * volume control (SLIMBUS_8 LOOPBACK Volume) with the -1.0 "use default"
+     * sentinel, which its volume calculation clamps to 0. FM therefore stays
+     * silent until the volume is applied again (previously done by toggling
+     * mute on/off twice). Re-apply the current volume once the path is up. */
+    final Runnable    mFmVolumeRestoreHandler = new Runnable() {
+        public void run() {
+            try {
+                Thread.sleep(FM_VOLUME_RESTORE_DELAY_MS);
+            } catch (Exception ex) {
+                Log.d( LOGTAG, "RunningThread InterruptedException");
+                return;
+            }
+            setCurrentFMVolume();
+        }
+    };
+
     final Runnable    mHeadsetPluginHandler = new Runnable() {
         public void run() {
             /* Update the UI based on the state change of the headset/antenna*/
@@ -1361,6 +1390,10 @@ public class FMRadioService extends Service
            startApplicationLoopBack(mAudioDevice);
        } else {
            configureFMDeviceLoopback(true);
+           /* The HAL zeroes the FM volume while starting the path, re-apply the
+            * user selected volume a little later */
+           mHandler.removeCallbacks(mFmVolumeRestoreHandler);
+           mHandler.post(mFmVolumeRestoreHandler);
        }
        try {
            if ((mServiceInUse) && (mCallbacks != null))
@@ -2775,7 +2808,6 @@ public class FMRadioService extends Service
 
    public void enableSpeaker(boolean speakerOn) {
        Log.d(LOGTAG, "speakerOn: " + speakerOn);
-       int mAudioDeviceType;
        String outputDevice;
        if (isCallActive())
            return;
@@ -2793,11 +2825,28 @@ public class FMRadioService extends Service
        if (mUseAudioSession) {
            startApplicationLoopBack(mAudioDevice);
        } else {
-           mAudioDeviceType = mAudioDevice | AudioSystem.DEVICE_OUT_FM;
            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-           String keyValPairs = new String("fm_routing="+mAudioDeviceType);
-           Log.d(LOGTAG, "keyValPairs = "+keyValPairs);
-           audioManager.setParameters(keyValPairs);
+           /* The prebuilt LG audio HAL implements neither the AOSP/CAF key
+            * "fm_routing" nor a reachable "routing" key (AudioFlinger drops
+            * "routing" for app callers with -EINVAL), so the FM output device is
+            * changed by restarting the FM audio path on the new device:
+            *   handle_fm=<device>            -> HAL fm_stop()   (no FM bit set)
+            *   handle_fm=<device|DEVICE_OUT_FM> -> HAL fm_start() on that device
+            * fm_speakerphone keeps the HAL's own FM device list in sync. */
+           if (isFmOn()) {
+               audioManager.setParameters(FM_PARAM_SPEAKERPHONE + "=" +
+                                          (speakerOn ? "on" : "off"));
+           }
+           int stopKeyVal = mAudioDevice;
+           int startKeyVal = mAudioDevice | AudioSystem.DEVICE_OUT_FM;
+           Log.d(LOGTAG, "keyValPairs = " + FM_PARAM_HANDLE_FM + "=" + stopKeyVal +
+                          " then " + FM_PARAM_HANDLE_FM + "=" + startKeyVal);
+           audioManager.setParameters(FM_PARAM_HANDLE_FM + "=" + stopKeyVal);
+           audioManager.setParameters(FM_PARAM_HANDLE_FM + "=" + startKeyVal);
+           mIsFMDeviceLoopbackActive = true;
+           /* The HAL zeroes the FM volume while (re)starting the path */
+           mHandler.removeCallbacks(mFmVolumeRestoreHandler);
+           mHandler.post(mFmVolumeRestoreHandler);
        }
        enableSlimbus(ENABLE_SLIMBUS_DATA_PORT);
    }
