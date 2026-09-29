@@ -80,6 +80,7 @@ fun FmMainScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var selectedFavoriteForRename by remember { mutableStateOf<FmStation?>(null) }
     var selectedFavoriteForDelete by remember { mutableStateOf<FmStation?>(null) }
+    var draggingFrequencyKHz by remember { mutableStateOf<Int?>(null) }
 
     // Show user messages via Snackbar
     LaunchedEffect(uiState.userMessage) {
@@ -178,6 +179,7 @@ fun FmMainScreen(
 
                             FmDisplayCard(
                                 uiState = uiState,
+                                previewFrequencyKHz = draggingFrequencyKHz,
                                 onFrequencyClick = {
                                     if (uiState.isPoweredOn) {
                                         showTuneDialog = true
@@ -195,6 +197,9 @@ fun FmMainScreen(
                                 enabled = uiState.isPoweredOn,
                                 onFrequencyChanged = { freq ->
                                     viewModel.tune(freq)
+                                },
+                                onDraggingFrequencyChanged = { freq ->
+                                    draggingFrequencyKHz = freq
                                 }
                             )
                         }
@@ -257,6 +262,7 @@ fun FmMainScreen(
                         // Station Info and Digital Display Card
                         FmDisplayCard(
                             uiState = uiState,
+                            previewFrequencyKHz = draggingFrequencyKHz,
                             onFrequencyClick = {
                                 if (uiState.isPoweredOn) {
                                     showTuneDialog = true
@@ -275,6 +281,9 @@ fun FmMainScreen(
                             enabled = uiState.isPoweredOn,
                             onFrequencyChanged = { freq ->
                                 viewModel.tune(freq)
+                            },
+                            onDraggingFrequencyChanged = { freq ->
+                                draggingFrequencyKHz = freq
                             }
                         )
 

@@ -67,6 +67,7 @@ import com.caf.fmradio.viewmodel.FmUiState
 fun FmDisplayCard(
     uiState: FmUiState,
     onFrequencyClick: () -> Unit,
+    previewFrequencyKHz: Int? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -129,6 +130,14 @@ fun FmDisplayCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val isTuning = previewFrequencyKHz != null && previewFrequencyKHz != uiState.currentFrequencyKHz
+            val displayedFreqKHz = previewFrequencyKHz ?: uiState.currentFrequencyKHz
+            val frequencyText = if (displayedFreqKHz % 100 != 0) {
+                String.format(java.util.Locale.US, "%.2f", displayedFreqKHz / 1000.0)
+            } else {
+                String.format(java.util.Locale.US, "%.1f", displayedFreqKHz / 1000.0)
+            }
+
             // Main Frequency Big Display
             Row(
                 modifier = Modifier
@@ -138,17 +147,17 @@ fun FmDisplayCard(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = uiState.frequencyMHzString,
+                    text = frequencyText,
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 64.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-1).sp,
                         fontFeatureSettings = "tnum"
                     ),
-                    color = if (uiState.isPoweredOn) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    color = when {
+                        !uiState.isPoweredOn -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        isTuning -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -161,8 +170,13 @@ fun FmDisplayCard(
             }
 
             // Station Name (RDS Program Service)
+            val matchingFavorite = if (isTuning) {
+                uiState.favorites.find { it.frequencyKHz == displayedFreqKHz }
+            } else null
+
             val stationTitle = when {
                 !uiState.isPoweredOn -> "Radio is OFF"
+                isTuning -> matchingFavorite?.name ?: "Tuning..."
                 uiState.isScanning -> "Scanning frequencies..."
                 uiState.isSeeking -> "Seeking station..."
                 uiState.stationName.isNotBlank() -> uiState.stationName
@@ -179,10 +193,11 @@ fun FmDisplayCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             // RadioText (RDS RT) with Marquee ticker
-            val radioText = if (uiState.isPoweredOn && uiState.radioText.isNotBlank()) {
-                uiState.radioText
-            } else {
-                if (uiState.isPoweredOn) "Ready" else "Tap power button to turn on"
+            val radioText = when {
+                !uiState.isPoweredOn -> "Tap power button to turn on"
+                isTuning -> "Release to tune frequency"
+                uiState.radioText.isNotBlank() -> uiState.radioText
+                else -> "Ready"
             }
 
             Text(

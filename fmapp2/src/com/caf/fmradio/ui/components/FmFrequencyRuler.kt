@@ -60,6 +60,7 @@ fun FmFrequencyRuler(
     stepSizeKHz: Int,
     enabled: Boolean,
     onFrequencyChanged: (Int) -> Unit,
+    onDraggingFrequencyChanged: ((Int?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
@@ -80,6 +81,7 @@ fun FmFrequencyRuler(
     }
 
     val currentOnFrequencyChanged by rememberUpdatedState(onFrequencyChanged)
+    val currentOnDraggingFrequencyChanged by rememberUpdatedState(onDraggingFrequencyChanged)
 
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
     val onSurfaceColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -97,6 +99,13 @@ fun FmFrequencyRuler(
                 detectHorizontalDragGestures(
                     onDragStart = {
                         isDragging = true
+                        val snapped = snapToStep(
+                            draggedFrequency.roundToInt(),
+                            minFrequencyKHz,
+                            maxFrequencyKHz,
+                            stepSizeKHz
+                        )
+                        currentOnDraggingFrequencyChanged?.invoke(snapped)
                     },
                     onDragEnd = {
                         isDragging = false
@@ -108,12 +117,14 @@ fun FmFrequencyRuler(
                             stepSizeKHz
                         )
                         draggedFrequency = snapped.toFloat()
+                        currentOnDraggingFrequencyChanged?.invoke(null)
                         currentOnFrequencyChanged(snapped)
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     },
                     onDragCancel = {
                         isDragging = false
                         draggedFrequency = currentFrequencyKHz.toFloat()
+                        currentOnDraggingFrequencyChanged?.invoke(null)
                     },
                     onHorizontalDrag = { change, dragAmount ->
                         change.consume()
@@ -126,11 +137,27 @@ fun FmFrequencyRuler(
                         val prevStep = (draggedFrequency / stepSizeKHz).roundToInt()
                         val newStep = (newFreq / stepSizeKHz).roundToInt()
 
+                        val prevSnapped = snapToStep(
+                            draggedFrequency.roundToInt(),
+                            minFrequencyKHz,
+                            maxFrequencyKHz,
+                            stepSizeKHz
+                        )
+                        val newSnapped = snapToStep(
+                            newFreq.roundToInt(),
+                            minFrequencyKHz,
+                            maxFrequencyKHz,
+                            stepSizeKHz
+                        )
+
                         draggedFrequency = newFreq
 
                         // Trigger haptic click when crossing each step
                         if (prevStep != newStep) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        if (prevSnapped != newSnapped) {
+                            currentOnDraggingFrequencyChanged?.invoke(newSnapped)
                         }
                     }
                 )
@@ -197,7 +224,12 @@ fun FmFrequencyRuler(
             }
 
             // Draw center cursor / pointer
-            drawCenterIndicator(centerX, rulerHeight, if (enabled) RadioDialIndicator else Color.Gray)
+            val indicatorColor = when {
+                !enabled -> Color.Gray
+                isDragging -> primaryColor
+                else -> RadioDialIndicator
+            }
+            drawCenterIndicator(centerX, rulerHeight, indicatorColor)
         }
     }
 }
