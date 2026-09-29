@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.caf.fmradio.R
@@ -176,8 +177,8 @@ fun FmControlBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                    .padding(vertical = 6.dp, horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Speaker / Headset
@@ -186,7 +187,8 @@ fun FmControlBar(
                     label = if (uiState.isSpeakerOn) "Speaker" else "Headset",
                     active = uiState.isSpeakerOn,
                     enabled = enabled,
-                    onClick = onToggleSpeaker
+                    onClick = onToggleSpeaker,
+                    modifier = Modifier.weight(1f)
                 )
 
                 // Mute
@@ -196,7 +198,8 @@ fun FmControlBar(
                     active = uiState.isMuted,
                     activeColor = MaterialTheme.colorScheme.error,
                     enabled = enabled,
-                    onClick = onToggleMute
+                    onClick = onToggleMute,
+                    modifier = Modifier.weight(1f)
                 )
 
                 // Recording
@@ -206,7 +209,8 @@ fun FmControlBar(
                     active = uiState.isRecording,
                     activeColor = MaterialTheme.colorScheme.error,
                     enabled = enabled,
-                    onClick = onToggleRecording
+                    onClick = onToggleRecording,
+                    modifier = Modifier.weight(1f)
                 )
 
                 // Scan / Auto search
@@ -216,7 +220,8 @@ fun FmControlBar(
                     active = uiState.isScanning,
                     activeColor = MaterialTheme.colorScheme.tertiary,
                     enabled = enabled,
-                    onClick = if (uiState.isScanning) onCancelScan else onStartScan
+                    onClick = if (uiState.isScanning) onCancelScan else onStartScan,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -229,6 +234,7 @@ private fun UtilityButton(
     label: String,
     active: Boolean,
     enabled: Boolean,
+    modifier: Modifier = Modifier,
     activeColor: Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit
 ) {
@@ -244,11 +250,11 @@ private fun UtilityButton(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 4.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -262,7 +268,9 @@ private fun UtilityButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = contentColor
+            color = contentColor,
+            maxLines = 1,
+            textAlign = TextAlign.Center
         )
     }
 }
