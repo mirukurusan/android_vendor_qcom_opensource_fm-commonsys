@@ -85,7 +85,7 @@ fun FmFavoritesList(
                 if (favorites.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
-                        shape = MaterialTheme.shapes.full,
+                        shape = CircleShape,
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
