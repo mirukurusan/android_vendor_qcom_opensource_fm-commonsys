@@ -70,11 +70,10 @@
         <activity android:icon="@mipmap/ic_launcher"
             android:name=".FMRadio"
             android:clearTaskOnLaunch="true"
-            android:screenOrientation="portrait"
             android:allowTaskReparenting="true"
             android:launchMode="singleTask"
             android:theme="@style/FMTheme"
-            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:configChanges="keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize"
             android:excludeFromRecents="false"
             android:exported="true" >
 

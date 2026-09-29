@@ -17,14 +17,20 @@
 package com.caf.fmradio.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +41,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,11 +87,11 @@ fun FmMainScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(
                         text = "FM Radio",
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
                 actions = {
@@ -114,89 +119,178 @@ fun FmMainScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
+            val isExpandedLayout = maxWidth >= 600.dp
 
-                // Missing Headset Warning Banner
-                if (!uiState.isAntennaAvailable) {
-                    NoAntennaBanner(modifier = Modifier.padding(bottom = 12.dp))
-                }
-
-                // Station Info and Digital Display Card
-                FmDisplayCard(
-                    uiState = uiState,
-                    onFrequencyClick = {
-                        if (uiState.isPoweredOn) {
-                            showTuneDialog = true
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Interactive Frequency Ruler Dial
-                FmFrequencyRuler(
-                    currentFrequencyKHz = uiState.currentFrequencyKHz,
-                    minFrequencyKHz = uiState.minFrequencyKHz,
-                    maxFrequencyKHz = uiState.maxFrequencyKHz,
-                    stepSizeKHz = uiState.stepSizeKHz,
-                    enabled = uiState.isPoweredOn,
-                    onFrequencyChanged = { freq ->
-                        viewModel.tune(freq)
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Vertical Favorites List
-                FmFavoritesList(
-                    favorites = uiState.favorites,
-                    currentFrequencyKHz = uiState.currentFrequencyKHz,
-                    isCurrentFavorite = uiState.isCurrentFavorite,
-                    isPoweredOn = uiState.isPoweredOn,
-                    onTune = { freq -> viewModel.tune(freq) },
-                    onToggleCurrentFavorite = { viewModel.toggleFavorite() },
-                    onRenameFavorite = { station -> selectedFavoriteForRename = station },
-                    onRemoveFavorite = { station -> selectedFavoriteForDelete = station },
+            if (isExpandedLayout) {
+                // M3 Canonical Supporting Pane Layout (Landscape / Tablet / Foldable)
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // Primary Focus Pane (Display, Tuner Ruler, and Playback Controls)
+                    Column(
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            if (!uiState.isAntennaAvailable) {
+                                NoAntennaBanner(modifier = Modifier.padding(bottom = 12.dp))
+                            }
+
+                            FmDisplayCard(
+                                uiState = uiState,
+                                onFrequencyClick = {
+                                    if (uiState.isPoweredOn) {
+                                        showTuneDialog = true
+                                    }
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            FmFrequencyRuler(
+                                currentFrequencyKHz = uiState.currentFrequencyKHz,
+                                minFrequencyKHz = uiState.minFrequencyKHz,
+                                maxFrequencyKHz = uiState.maxFrequencyKHz,
+                                stepSizeKHz = uiState.stepSizeKHz,
+                                enabled = uiState.isPoweredOn,
+                                onFrequencyChanged = { freq ->
+                                    viewModel.tune(freq)
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        FmControlBar(
+                            uiState = uiState,
+                            onTogglePower = { viewModel.togglePower() },
+                            onStep = { forward -> viewModel.step(forward) },
+                            onSeek = { forward -> viewModel.seek(forward) },
+                            onToggleMute = { viewModel.toggleMute() },
+                            onToggleSpeaker = { viewModel.toggleSpeaker() },
+                            onToggleRecording = { viewModel.toggleRecording() },
+                            onStartScan = { viewModel.startScan() },
+                            onCancelScan = { viewModel.cancelScan() },
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    // Supporting Pane (Station Favorites & List)
+                    Column(
+                        modifier = Modifier
+                            .weight(0.9f)
+                            .fillMaxHeight()
+                    ) {
+                        FmFavoritesList(
+                            favorites = uiState.favorites,
+                            currentFrequencyKHz = uiState.currentFrequencyKHz,
+                            isCurrentFavorite = uiState.isCurrentFavorite,
+                            isPoweredOn = uiState.isPoweredOn,
+                            onTune = { freq -> viewModel.tune(freq) },
+                            onToggleCurrentFavorite = { viewModel.toggleFavorite() },
+                            onRenameFavorite = { station -> selectedFavoriteForRename = station },
+                            onRemoveFavorite = { station -> selectedFavoriteForDelete = station },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            } else {
+                // Compact Layout (Phone Portrait)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Missing Headset Warning Banner
+                        if (!uiState.isAntennaAvailable) {
+                            NoAntennaBanner(modifier = Modifier.padding(bottom = 12.dp))
+                        }
+
+                        // Station Info and Digital Display Card
+                        FmDisplayCard(
+                            uiState = uiState,
+                            onFrequencyClick = {
+                                if (uiState.isPoweredOn) {
+                                    showTuneDialog = true
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Interactive Frequency Ruler Dial
+                        FmFrequencyRuler(
+                            currentFrequencyKHz = uiState.currentFrequencyKHz,
+                            minFrequencyKHz = uiState.minFrequencyKHz,
+                            maxFrequencyKHz = uiState.maxFrequencyKHz,
+                            stepSizeKHz = uiState.stepSizeKHz,
+                            enabled = uiState.isPoweredOn,
+                            onFrequencyChanged = { freq ->
+                                viewModel.tune(freq)
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Vertical Favorites List
+                        FmFavoritesList(
+                            favorites = uiState.favorites,
+                            currentFrequencyKHz = uiState.currentFrequencyKHz,
+                            isCurrentFavorite = uiState.isCurrentFavorite,
+                            isPoweredOn = uiState.isPoweredOn,
+                            onTune = { freq -> viewModel.tune(freq) },
+                            onToggleCurrentFavorite = { viewModel.toggleFavorite() },
+                            onRenameFavorite = { station -> selectedFavoriteForRename = station },
+                            onRemoveFavorite = { station -> selectedFavoriteForDelete = station },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Playback & Tuning Control Bar
+                    FmControlBar(
+                        uiState = uiState,
+                        onTogglePower = { viewModel.togglePower() },
+                        onStep = { forward -> viewModel.step(forward) },
+                        onSeek = { forward -> viewModel.seek(forward) },
+                        onToggleMute = { viewModel.toggleMute() },
+                        onToggleSpeaker = { viewModel.toggleSpeaker() },
+                        onToggleRecording = { viewModel.toggleRecording() },
+                        onStartScan = { viewModel.startScan() },
+                        onCancelScan = { viewModel.cancelScan() },
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Playback & Tuning Control Bar
-            FmControlBar(
-                uiState = uiState,
-                onTogglePower = { viewModel.togglePower() },
-                onStep = { forward -> viewModel.step(forward) },
-                onSeek = { forward -> viewModel.seek(forward) },
-                onToggleMute = { viewModel.toggleMute() },
-                onToggleSpeaker = { viewModel.toggleSpeaker() },
-                onToggleRecording = { viewModel.toggleRecording() },
-                onStartScan = { viewModel.startScan() },
-                onCancelScan = { viewModel.cancelScan() },
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
         }
     }
 
