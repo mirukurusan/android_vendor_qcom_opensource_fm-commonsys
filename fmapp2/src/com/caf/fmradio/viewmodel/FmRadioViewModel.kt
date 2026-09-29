@@ -147,14 +147,38 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     fun togglePower() {
         val state = _uiState.value
+        Log.d(TAG, "togglePower called, current isPoweredOn=${state.isPoweredOn}")
         if (state.isPoweredOn) {
-            repository.fmOff()
+            val success = repository.fmOff()
+            Log.d(TAG, "fmOff executed, success=$success")
+            _uiState.update {
+                it.copy(
+                    isPoweredOn = false,
+                    isRecording = false,
+                    isScanning = false,
+                    isSeeking = false
+                )
+            }
+            stopRecordTimer()
         } else {
             if (!state.isAntennaAvailable) {
                 _uiState.update { it.copy(userMessage = "Please plug in wired headset as antenna") }
                 return
             }
-            repository.fmOn()
+            val success = repository.fmOn()
+            Log.d(TAG, "fmOn executed, success=$success")
+            if (success) {
+                _uiState.update {
+                    it.copy(
+                        isPoweredOn = true,
+                        isMuted = repository.isMuted(),
+                        isSpeakerOn = repository.isSpeakerEnabled()
+                    )
+                }
+                tune(_uiState.value.currentFrequencyKHz)
+            } else {
+                _uiState.update { it.copy(userMessage = "Failed to turn on FM Radio") }
+            }
         }
     }
 
@@ -278,23 +302,66 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onServiceConnected() {
         viewModelScope.launch {
-            val isFmOn = repository.isFmOn()
-            val isMuted = repository.isMuted()
-            val isSpeaker = repository.isSpeakerEnabled()
-            val isRecording = repository.isRecording()
-            val isAntenna = repository.isAntennaAvailable()
-
-            _uiState.update {
-                it.copy(
-                    isServiceConnected = true,
-                    isPoweredOn = isFmOn,
-                    isMuted = isMuted,
-                    isSpeakerOn = isSpeaker,
-                    isRecording = isRecording,
-                    isAntennaAvailable = isAntenna
-                )
-            }
             loadConfigurationAndPresets()
+            val isAntenna = repository.isAntennaAvailable()
+            val isFmOn = repository.isFmOn()
+            val tuned = try {
+                FmSharedPreferences.getTunedFrequency().takeIf { it > 0 } ?: _uiState.value.currentFrequencyKHz
+            } catch (e: Exception) {
+                _uiState.value.currentFrequencyKHz
+            }
+            Log.d(TAG, "onServiceConnected: isFmOn=$isFmOn, isAntenna=$isAntenna, tuned=$tuned")
+
+            if (!isFmOn && isAntenna) {
+                // Auto start FM on launch when antenna is present (matching legacy FMRadio behavior)
+                val started = repository.fmOn()
+                Log.d(TAG, "Auto fmOn result: $started")
+                if (started) {
+                    _uiState.update {
+                        it.copy(
+                            isServiceConnected = true,
+                            isPoweredOn = true,
+                            isAntennaAvailable = true,
+                            currentFrequencyKHz = tuned,
+                            isMuted = repository.isMuted(),
+                            isSpeakerOn = repository.isSpeakerEnabled(),
+                            isRecording = false
+                        )
+                    }
+                    repository.tune(tuned)
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isServiceConnected = true,
+                            isPoweredOn = false,
+                            isAntennaAvailable = true,
+                            currentFrequencyKHz = tuned
+                        )
+                    }
+                }
+            } else if (isFmOn) {
+                _uiState.update {
+                    it.copy(
+                        isServiceConnected = true,
+                        isPoweredOn = true,
+                        isAntennaAvailable = isAntenna,
+                        currentFrequencyKHz = tuned,
+                        isMuted = repository.isMuted(),
+                        isSpeakerOn = repository.isSpeakerEnabled(),
+                        isRecording = repository.isRecording()
+                    )
+                }
+                repository.tune(tuned)
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isServiceConnected = true,
+                        isPoweredOn = false,
+                        isAntennaAvailable = isAntenna,
+                        currentFrequencyKHz = tuned
+                    )
+                }
+            }
         }
     }
 
@@ -312,13 +379,21 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onEnabled() {
         viewModelScope.launch {
+            val tuned = try {
+                FmSharedPreferences.getTunedFrequency().takeIf { it > 0 } ?: _uiState.value.currentFrequencyKHz
+            } catch (e: Exception) {
+                _uiState.value.currentFrequencyKHz
+            }
+            Log.d(TAG, "onEnabled callback received, tuning to $tuned")
             _uiState.update {
                 it.copy(
                     isPoweredOn = true,
+                    currentFrequencyKHz = tuned,
                     isMuted = repository.isMuted(),
                     isSpeakerOn = repository.isSpeakerEnabled()
                 )
             }
+            repository.tune(tuned)
         }
     }
 
@@ -393,16 +468,43 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onSearchComplete(scannedFrequencies: List<Int>) {
         viewModelScope.launch {
-            val stations = scannedFrequencies.map { freq ->
-                FmStation(frequencyKHz = freq)
+            val wasScanning = _uiState.value.isScanning
+            val tuned = try {
+                FmSharedPreferences.getTunedFrequency().takeIf { it > 0 } ?: _uiState.value.currentFrequencyKHz
+            } catch (e: Exception) {
+                _uiState.value.currentFrequencyKHz
             }
-            _uiState.update {
-                it.copy(
-                    scannedStations = stations,
-                    isScanning = false,
-                    isSeeking = false,
-                    userMessage = if (stations.isEmpty()) "Search complete: No stations found" else "Found ${stations.size} stations"
-                )
+            val ps = repository.getProgramService()
+            val rt = repository.getRadioText()
+
+            Log.d(TAG, "onSearchComplete: wasScanning=$wasScanning, tuned=$tuned, ps=$ps, freqsCount=${scannedFrequencies.size}")
+
+            if (wasScanning) {
+                val stations = scannedFrequencies.map { freq ->
+                    FmStation(frequencyKHz = freq)
+                }
+                _uiState.update {
+                    it.copy(
+                        currentFrequencyKHz = tuned,
+                        stationName = ps,
+                        radioText = rt,
+                        scannedStations = stations,
+                        isScanning = false,
+                        isSeeking = false,
+                        userMessage = if (stations.isEmpty()) "Search complete: No stations found" else "Found ${stations.size} stations"
+                    )
+                }
+            } else {
+                // Seek (>> or <<) completed: update current frequency and station info!
+                _uiState.update {
+                    it.copy(
+                        currentFrequencyKHz = tuned,
+                        stationName = ps,
+                        radioText = rt,
+                        isSeeking = false,
+                        isScanning = false
+                    )
+                }
             }
         }
     }

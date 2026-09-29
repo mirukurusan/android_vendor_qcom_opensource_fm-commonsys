@@ -103,16 +103,28 @@ fun FmControlBar(
                     }
                 )
             ) {
-                Text(
-                    text = if (uiState.isPoweredOn) "ON" else "OFF",
-                    color = if (uiState.isPoweredOn) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "⏻",
+                        color = if (uiState.isPoweredOn) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (uiState.isPoweredOn) "ON" else "OFF",
+                        color = if (uiState.isPoweredOn) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             // Step Up (+)
