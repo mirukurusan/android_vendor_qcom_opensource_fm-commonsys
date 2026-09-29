@@ -16,6 +16,7 @@
 
 package com.caf.fmradio.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,14 +27,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.caf.fmradio.FMStats
 import com.caf.fmradio.viewmodel.FmUiState
 
 @Composable
@@ -41,6 +44,8 @@ fun SettingsDialog(
     uiState: FmUiState,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -80,6 +85,24 @@ fun SettingsDialog(
                     title = "Current Audio Path",
                     value = if (uiState.isSpeakerOn) "Speaker (Loudspeaker)" else "Wired Headset"
                 )
+
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // Engineering Diagnostics button
+                OutlinedButton(
+                    onClick = {
+                        try {
+                            val intent = Intent(context, FMStats::class.java)
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Signal Diagnostics (FMStats)")
+                }
             }
         },
         confirmButton = {
