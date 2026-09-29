@@ -160,6 +160,7 @@ public class FMRadioService extends Service
    private boolean misAnalogPathEnabled = false;
    private boolean mA2dpDisconnected = false;
    private boolean mA2dpConnected = false;
+   private int mCurrentRssi = Integer.MAX_VALUE;
 
    private boolean mFmStats = false;
    //Install the death receipient
@@ -3696,6 +3697,7 @@ public class FMRadioService extends Service
 
       public void FmRxGetStationParam(int val, int status)
       {
+          mCurrentRssi = (status == 0) ? (byte)val : Integer.MAX_VALUE;
           if (mCallbacks != null) {
               try {
                   mCallbacks.getStationParamCb(val, status);
@@ -3939,9 +3941,10 @@ public class FMRadioService extends Service
    public int getRssi() {
       if (mReceiver != null) {
           mEventReceived = false;
-          int rssi = mReceiver.getRssi();
+          mCurrentRssi = Integer.MAX_VALUE;
+          mReceiver.getRssi();
           waitForFWEvent();
-          return rssi;
+          return mCurrentRssi;
       } else
           return Integer.MAX_VALUE;
    }

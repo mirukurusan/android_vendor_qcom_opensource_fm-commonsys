@@ -43,6 +43,7 @@ data class FmUiState(
     val radioText: String = "",
     val rdsSupported: Boolean = false,
     val signalStrength: Int = 0, // 0 to 4 levels
+    val showSignalIndicator: Boolean = false,
     val presets: List<FmStation> = emptyList(),
     val scannedStations: List<FmStation> = emptyList(),
     val sleepTimerRemainingSeconds: Long? = null,

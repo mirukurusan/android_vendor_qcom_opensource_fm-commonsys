@@ -30,6 +30,7 @@ import com.caf.fmradio.FmSharedPreferences
 import com.caf.fmradio.PresetStation
 import com.caf.fmradio.data.FmServiceRepository
 import com.caf.fmradio.data.FmStation
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +52,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     private var recordTimerJob: Job? = null
     private var sleepTimerJob: Job? = null
+    private var rssiPollJob: Job? = null
 
     private val headsetReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -120,6 +122,11 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         } catch (e: Exception) {
             true
         }
+        val showSignal = try {
+            FmSharedPreferences.getShowSignalStrength()
+        } catch (e: Exception) {
+            false
+        }
 
         val presets = loadPresetsFromPreferences()
         val scanned = loadScannedStations()
@@ -134,7 +141,8 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 scannedStations = scanned,
                 regionalBandIndex = country,
                 isAutoAfEnabled = autoAf,
-                isStereo = isStereo
+                isStereo = isStereo,
+                showSignalIndicator = showSignal
             )
         }
     }
@@ -239,6 +247,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 )
             }
             stopRecordTimer()
+            updateRssiPolling()
         } else {
             if (!state.isAntennaAvailable) {
                 _uiState.update { it.copy(userMessage = "Please plug in wired headset as antenna") }
@@ -255,6 +264,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
                 tune(_uiState.value.currentFrequencyKHz)
+                updateRssiPolling()
             } else {
                 _uiState.update { it.copy(userMessage = "Failed to turn on FM Radio") }
             }
@@ -288,17 +298,20 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     fun seek(forward: Boolean) {
         _uiState.update { it.copy(isSeeking = true) }
+        updateRssiPolling()
         repository.seek(forward)
     }
 
     fun startScan() {
         _uiState.update { it.copy(isScanning = true) }
+        updateRssiPolling()
         repository.scan(0)
     }
 
     fun cancelScan() {
         repository.cancelSearch()
         _uiState.update { it.copy(isScanning = false, isSeeking = false) }
+        updateRssiPolling()
     }
 
     fun toggleMute() {
@@ -468,6 +481,19 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun setShowSignalIndicator(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                FmSharedPreferences.setShowSignalStrength(enabled)
+                FmSharedPreferences.save(getApplication())
+                _uiState.update { it.copy(showSignalIndicator = enabled) }
+                updateRssiPolling()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting showSignalIndicator", e)
+            }
+        }
+    }
+
     // --- Service Listener Implementation ---
 
     override fun onServiceConnected() {
@@ -499,6 +525,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                         )
                     }
                     repository.tune(tuned)
+                    updateRssiPolling()
                 } else {
                     _uiState.update {
                         it.copy(
@@ -508,6 +535,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                             currentFrequencyKHz = tuned
                         )
                     }
+                    updateRssiPolling()
                 }
             } else if (isFmOn) {
                 _uiState.update {
@@ -522,6 +550,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
                 repository.tune(tuned)
+                updateRssiPolling()
             } else {
                 _uiState.update {
                     it.copy(
@@ -531,6 +560,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                         currentFrequencyKHz = tuned
                     )
                 }
+                updateRssiPolling()
             }
         }
     }
@@ -544,6 +574,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     isRecording = false
                 )
             }
+            updateRssiPolling()
         }
     }
 
@@ -564,6 +595,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 )
             }
             repository.tune(tuned)
+            updateRssiPolling()
         }
     }
 
@@ -578,6 +610,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 )
             }
             stopRecordTimer()
+            updateRssiPolling()
         }
     }
 
@@ -604,6 +637,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     rdsSupported = false
                 )
             }
+            updateRssiPolling()
         }
     }
 
@@ -624,14 +658,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
     override fun onSignalStrengthChanged() {
         viewModelScope.launch {
             val rssi = repository.getRssi()
-            // Map RSSI (e.g. 0-100 or dBm) to 0..4 bars
-            val bars = when {
-                rssi > 70 -> 4
-                rssi > 50 -> 3
-                rssi > 30 -> 2
-                rssi > 10 -> 1
-                else -> 0
-            }
+            val bars = mapRssiToBars(rssi)
             _uiState.update { it.copy(signalStrength = bars) }
         }
     }
@@ -682,6 +709,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
             }
+            updateRssiPolling()
         }
     }
 
@@ -737,6 +765,49 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         recordTimerJob = null
     }
 
+    private fun updateRssiPolling() {
+        val state = _uiState.value
+        val shouldPoll = state.isPoweredOn && state.showSignalIndicator && !state.isScanning && !state.isSeeking
+        if (shouldPoll) {
+            if (rssiPollJob?.isActive == true) return
+            rssiPollJob = viewModelScope.launch(Dispatchers.IO) {
+                while (isActive) {
+                    val rawRssi = repository.getRssi()
+                    val bars = mapRssiToBars(rawRssi)
+                    _uiState.update { it.copy(signalStrength = bars) }
+                    delay(1000L)
+                }
+            }
+        } else {
+            rssiPollJob?.cancel()
+            rssiPollJob = null
+            if (!state.isPoweredOn) {
+                _uiState.update { it.copy(signalStrength = 0) }
+            }
+        }
+    }
+
+    private fun mapRssiToBars(rssi: Int): Int {
+        if (rssi == Integer.MAX_VALUE || rssi == 0) return 0
+        return if (rssi < 0) {
+            when {
+                rssi >= -70 -> 4
+                rssi >= -82 -> 3
+                rssi >= -92 -> 2
+                rssi >= -102 -> 1
+                else -> 0
+            }
+        } else {
+            when {
+                rssi >= 65 -> 4
+                rssi >= 45 -> 3
+                rssi >= 25 -> 2
+                rssi >= 10 -> 1
+                else -> 0
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         try {
@@ -746,6 +817,8 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         }
         stopRecordTimer()
         cancelSleepTimer()
+        rssiPollJob?.cancel()
+        rssiPollJob = null
         repository.unbind(getApplication())
     }
 }

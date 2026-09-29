@@ -70,6 +70,7 @@ fun SettingsDialog(
     onSetUserDefinedBand: (minKHz: Int, maxKHz: Int, spacingKHz: Int) -> Unit,
     onSetAudioOutputMode: (Boolean) -> Unit,
     onSetAutoAF: (Boolean) -> Unit,
+    onSetShowSignalIndicator: (Boolean) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -213,7 +214,33 @@ fun SettingsDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-                // 6. Signal Diagnostics Button (FMStats)
+                // 6. Signal Strength Indicator Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Signal Strength Indicator",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Show real-time signal bars by periodic polling",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = uiState.showSignalIndicator,
+                        onCheckedChange = { onSetShowSignalIndicator(it) }
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // 7. Signal Diagnostics Button (FMStats)
                 OutlinedButton(
                     onClick = {
                         try {

@@ -142,6 +142,8 @@ public class FmSharedPreferences
    private static final String LAST_RECORD_DURATION = "last_record_duration";
    private static String  LAST_AF_JUMP_VALUE = "last_af_jump_value";
    private static final String AUDIO_OUTPUT_MODE = "audio_output_mode";
+   private static final String SHOW_SIGNAL_STRENGTH = "show_signal_strength";
+   private static boolean mShowSignalStrength = false;
    private static Map<String, String> mNameMap = new HashMap<String, String>();
    private static List<PresetList> mListOfPlists = new ArrayList<PresetList>();
    public static Set[] tagList = new TreeSet[FmSharedPreferences.MAX_NUM_TAG_TYPES];
@@ -464,6 +466,7 @@ public class FmSharedPreferences
       mRecordDuration = sp.getInt(LAST_RECORD_DURATION, RECORD_DUR_INDEX_0_VAL);
       mAFAutoSwitch = sp.getBoolean(LAST_AF_JUMP_VALUE, true);
       mAudioOutputMode = sp.getBoolean(AUDIO_OUTPUT_MODE, true);
+      mShowSignalStrength = sp.getBoolean(SHOW_SIGNAL_STRENGTH, false);
 
       if (sp.getInt(FMCONFIG_COUNTRY, 0) == REGIONAL_BAND_USER_DEFINED) {
          mBandMinFreq = sp.getInt(FMCONFIG_MIN, mBandMinFreq);
@@ -592,7 +595,16 @@ public class FmSharedPreferences
       ed.putInt(LAST_RECORD_DURATION, mRecordDuration);
       ed.putBoolean(LAST_AF_JUMP_VALUE, mAFAutoSwitch);
       ed.putBoolean(AUDIO_OUTPUT_MODE, mAudioOutputMode);
+      ed.putBoolean(SHOW_SIGNAL_STRENGTH, mShowSignalStrength);
       ed.commit();
+   }
+
+   public static boolean getShowSignalStrength() {
+      return mShowSignalStrength;
+   }
+
+   public static void setShowSignalStrength(boolean show) {
+      mShowSignalStrength = show;
    }
 
    public void Save() {

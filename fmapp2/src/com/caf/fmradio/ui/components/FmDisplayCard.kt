@@ -89,10 +89,12 @@ fun FmDisplayCard(
             ) {
                 // Signal & Audio Mode Badge
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SignalStrengthIndicator(
-                        bars = if (uiState.isPoweredOn) uiState.signalStrength else 0
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    if (uiState.showSignalIndicator) {
+                        SignalStrengthIndicator(
+                            bars = if (uiState.isPoweredOn) uiState.signalStrength else 0
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     StatusBadge(
                         text = if (uiState.isStereo) "STEREO" else "MONO",
                         active = uiState.isPoweredOn

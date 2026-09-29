@@ -280,6 +280,7 @@ fun FmMainScreen(
             },
             onSetAudioOutputMode = { isStereo -> viewModel.setAudioOutputMode(isStereo) },
             onSetAutoAF = { enabled -> viewModel.setAutoAF(enabled) },
+            onSetShowSignalIndicator = { enabled -> viewModel.setShowSignalIndicator(enabled) },
             onDismiss = { showSettingsDialog = false }
         )
     }
