@@ -105,6 +105,21 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         } catch (e: Exception) {
             minFreq
         }
+        val country = try {
+            FmSharedPreferences.getCountry()
+        } catch (e: Exception) {
+            FmSharedPreferences.REGIONAL_BAND_NORTH_AMERICA
+        }
+        val autoAf = try {
+            FmSharedPreferences.getAutoAFSwitch()
+        } catch (e: Exception) {
+            true
+        }
+        val isStereo = try {
+            FmSharedPreferences.getAudioOutputMode()
+        } catch (e: Exception) {
+            true
+        }
 
         val presets = loadPresetsFromPreferences()
         val scanned = loadScannedStations()
@@ -116,7 +131,10 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 stepSizeKHz = stepSize,
                 currentFrequencyKHz = tuned,
                 presets = presets,
-                scannedStations = scanned
+                scannedStations = scanned,
+                regionalBandIndex = country,
+                isAutoAfEnabled = autoAf,
+                isStereo = isStereo
             )
         }
     }
@@ -168,7 +186,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     val name = st.name.ifBlank { st.displayName }
                     FmSharedPreferences.addStation(curIndex, PresetStation(name, st.frequencyKHz))
                 }
-                FmSharedPreferences(getApplication()).Save()
+                FmSharedPreferences.save(getApplication())
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error auto-populating presets", e)
@@ -326,7 +344,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 val newStation = PresetStation(stationName, frequencyKHz)
                 FmSharedPreferences.addStation(curIndex, newStation)
             }
-            FmSharedPreferences(getApplication()).Save()
+            FmSharedPreferences.save(getApplication())
             _uiState.update { it.copy(presets = loadPresetsFromPreferences()) }
         } catch (e: Exception) {
             Log.e(TAG, "Error toggling preset", e)
@@ -362,6 +380,84 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     fun dismissMessage() {
         _uiState.update { it.copy(userMessage = null) }
+    }
+
+    fun setRegionalBand(bandIndex: Int) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "setRegionalBand: $bandIndex")
+                FmSharedPreferences.setCountry(bandIndex)
+                FmSharedPreferences.save(getApplication())
+                if (_uiState.value.isPoweredOn) {
+                    repository.fmReconfigure()
+                }
+                loadConfigurationAndPresets()
+                val min = _uiState.value.minFrequencyKHz
+                val max = _uiState.value.maxFrequencyKHz
+                val current = _uiState.value.currentFrequencyKHz
+                if (current !in min..max) {
+                    tune(min)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting regional band", e)
+            }
+        }
+    }
+
+    fun setUserDefinedBand(minFreqKHz: Int, maxFreqKHz: Int, spacingKHz: Int) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "setUserDefinedBand: min=$minFreqKHz, max=$maxFreqKHz, spacing=$spacingKHz")
+                FmSharedPreferences.setCountry(FmSharedPreferences.REGIONAL_BAND_USER_DEFINED)
+                FmSharedPreferences.setLowerLimit(minFreqKHz)
+                FmSharedPreferences.setUpperLimit(maxFreqKHz)
+                val spacingCode = when (spacingKHz) {
+                    50 -> 2
+                    200 -> 0
+                    else -> 1 // 100 kHz
+                }
+                FmSharedPreferences.setChSpacing(spacingCode)
+                FmSharedPreferences.save(getApplication())
+                if (_uiState.value.isPoweredOn) {
+                    repository.fmReconfigure()
+                }
+                loadConfigurationAndPresets()
+                val min = _uiState.value.minFrequencyKHz
+                val max = _uiState.value.maxFrequencyKHz
+                val current = _uiState.value.currentFrequencyKHz
+                if (current !in min..max) {
+                    tune(min)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting user defined band", e)
+            }
+        }
+    }
+
+    fun setAudioOutputMode(isStereo: Boolean) {
+        viewModelScope.launch {
+            try {
+                FmSharedPreferences.setAudioOutputMode(isStereo)
+                FmSharedPreferences.save(getApplication())
+                repository.enableStereo(isStereo)
+                _uiState.update { it.copy(isStereo = isStereo) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting audio output mode", e)
+            }
+        }
+    }
+
+    fun setAutoAF(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                FmSharedPreferences.setAutoAFSwitch(enabled)
+                FmSharedPreferences.save(getApplication())
+                repository.enableAutoAF(enabled)
+                _uiState.update { it.copy(isAutoAfEnabled = enabled) }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting auto AF", e)
+            }
+        }
     }
 
     // --- Service Listener Implementation ---

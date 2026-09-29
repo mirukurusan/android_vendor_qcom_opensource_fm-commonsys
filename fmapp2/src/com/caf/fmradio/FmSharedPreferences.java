@@ -176,8 +176,10 @@ public class FmSharedPreferences
 
    public FmSharedPreferences(Context context){
       mContext = context.getApplicationContext();
-      mFMConfiguration = new FmConfig();
-      Load();
+      if (mFMConfiguration == null) {
+         mFMConfiguration = new FmConfig();
+         Load();
+      }
    }
 
    public static void removeStation(int listIndex, int stationIndex){
@@ -521,15 +523,15 @@ public class FmSharedPreferences
       }
    }
 
-   public void Save() {
-      if(mContext == null)
+   public static void save(Context context) {
+      if(context == null)
       {
          return;
       }
       Log.d(LOGTAG, "Save preferences ");
 
       int numLists = mListOfPlists.size();
-      SharedPreferences sp = mContext.getSharedPreferences(SHARED_PREFS, Context.MODE_PRIVATE);
+      SharedPreferences sp = context.getApplicationContext().getSharedPreferences(SHARED_PREFS, Context.MODE_PRIVATE);
       SharedPreferences.Editor ed = sp.edit();
 
       ed.putInt(PREF_LAST_TUNED_FREQUENCY, mTunedFrequency);
@@ -576,6 +578,10 @@ public class FmSharedPreferences
       ed.putBoolean(LAST_AF_JUMP_VALUE, mAFAutoSwitch);
       ed.putBoolean(AUDIO_OUTPUT_MODE, mAudioOutputMode);
       ed.commit();
+   }
+
+   public void Save() {
+      save(mContext);
    }
 
    public static void SetDefaults() {

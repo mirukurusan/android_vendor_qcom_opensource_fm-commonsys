@@ -251,6 +251,24 @@ class FmServiceRepository {
         false
     }
 
+    fun fmReconfigure(): Boolean = try {
+        service?.fmReconfigure() ?: false
+    } catch (e: RemoteException) {
+        false
+    }
+
+    fun enableStereo(isStereo: Boolean): Boolean = try {
+        service?.enableStereo(isStereo) ?: false
+    } catch (e: RemoteException) {
+        false
+    }
+
+    fun enableAutoAF(enable: Boolean): Boolean = try {
+        service?.enableAutoAF(enable) ?: false
+    } catch (e: RemoteException) {
+        false
+    }
+
     fun mute(): Boolean = try {
         service?.mute() ?: false
     } catch (e: RemoteException) {

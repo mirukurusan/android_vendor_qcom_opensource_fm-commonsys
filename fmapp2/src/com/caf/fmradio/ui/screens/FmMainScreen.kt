@@ -274,6 +274,12 @@ fun FmMainScreen(
     if (showSettingsDialog) {
         SettingsDialog(
             uiState = uiState,
+            onSetRegionalBand = { bandIndex -> viewModel.setRegionalBand(bandIndex) },
+            onSetUserDefinedBand = { minKHz, maxKHz, stepKHz ->
+                viewModel.setUserDefinedBand(minKHz, maxKHz, stepKHz)
+            },
+            onSetAudioOutputMode = { isStereo -> viewModel.setAudioOutputMode(isStereo) },
+            onSetAutoAF = { enabled -> viewModel.setAutoAF(enabled) },
             onDismiss = { showSettingsDialog = false }
         )
     }

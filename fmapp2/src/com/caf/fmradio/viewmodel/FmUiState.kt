@@ -46,6 +46,8 @@ data class FmUiState(
     val presets: List<FmStation> = emptyList(),
     val scannedStations: List<FmStation> = emptyList(),
     val sleepTimerRemainingSeconds: Long? = null,
+    val regionalBandIndex: Int = 8,
+    val isAutoAfEnabled: Boolean = true,
     val userMessage: String? = null
 ) {
     /**
