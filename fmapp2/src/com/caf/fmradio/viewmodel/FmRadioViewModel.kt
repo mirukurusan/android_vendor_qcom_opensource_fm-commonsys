@@ -323,9 +323,14 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
     fun toggleRecording() {
         if (_uiState.value.isRecording) {
             repository.stopRecording()
+            _uiState.update { it.copy(isRecording = false) }
+            stopRecordTimer()
         } else {
             val started = repository.startRecording()
-            if (!started) {
+            if (started) {
+                _uiState.update { it.copy(isRecording = true, recordDurationSeconds = 0L) }
+                startRecordTimer()
+            } else {
                 _uiState.update { it.copy(userMessage = "Failed to start recording") }
             }
         }

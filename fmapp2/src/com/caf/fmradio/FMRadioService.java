@@ -1599,6 +1599,13 @@ public class FMRadioService extends Service
 
         mSampleStart = SystemClock.elapsedRealtime();
         Log.d(LOGTAG, "Sample start time: " +mSampleStart);
+        try {
+            if ((mServiceInUse) && (mCallbacks != null)) {
+                mCallbacks.onRecordingStarted();
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
         return true;
   }
 
