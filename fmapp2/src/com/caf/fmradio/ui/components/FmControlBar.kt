@@ -173,6 +173,7 @@ fun FmControlBar(
                 UtilityButton(
                     label = if (uiState.isMuted) "Unmute" else "Mute",
                     active = uiState.isMuted,
+                    activeColor = MaterialTheme.colorScheme.error,
                     enabled = enabled,
                     onClick = onToggleMute
                 )

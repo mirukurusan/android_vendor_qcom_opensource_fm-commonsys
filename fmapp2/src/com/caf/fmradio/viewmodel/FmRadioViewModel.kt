@@ -223,11 +223,18 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun toggleMute() {
-        val isMuted = _uiState.value.isMuted
-        if (isMuted) {
+        val currentlyMuted = _uiState.value.isMuted
+        Log.d(TAG, "toggleMute called, currentlyMuted=$currentlyMuted")
+        if (currentlyMuted) {
             repository.unMute()
+            val newMuted = repository.isMuted()
+            Log.d(TAG, "unMute executed, newMuted=$newMuted")
+            _uiState.update { it.copy(isMuted = newMuted) }
         } else {
             repository.mute()
+            val newMuted = repository.isMuted()
+            Log.d(TAG, "mute executed, newMuted=$newMuted")
+            _uiState.update { it.copy(isMuted = newMuted) }
         }
     }
 
