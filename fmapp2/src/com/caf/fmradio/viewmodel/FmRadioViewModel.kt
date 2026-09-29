@@ -184,23 +184,6 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
         return list
     }
 
-    private fun autoPopulatePresetsIfEmpty(stations: List<FmStation>) {
-        try {
-            val curIndex = FmSharedPreferences.getCurrentListIndex()
-            val presetList = FmSharedPreferences.getStationList(curIndex)
-            val currentCount = presetList?.stationCount ?: 0
-            if (currentCount == 0 && stations.isNotEmpty()) {
-                for (st in stations.take(12)) {
-                    val name = st.name.ifBlank { st.displayName }
-                    FmSharedPreferences.addStation(curIndex, PresetStation(name, st.frequencyKHz))
-                }
-                FmSharedPreferences.save(getApplication())
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error auto-populating presets", e)
-        }
-    }
-
     private fun loadPresetsFromPreferences(): List<FmStation> {
         val list = mutableListOf<FmStation>()
         try {
@@ -369,6 +352,39 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
             _uiState.update { it.copy(presets = loadPresetsFromPreferences()) }
         } catch (e: Exception) {
             Log.e(TAG, "Error toggling preset", e)
+        }
+    }
+
+    fun toggleFavorite(frequencyKHz: Int = _uiState.value.currentFrequencyKHz, name: String = "") {
+        togglePreset(frequencyKHz, name)
+    }
+
+    fun removeFavorite(frequencyKHz: Int) {
+        try {
+            val curIndex = FmSharedPreferences.getCurrentListIndex()
+            val existing = FmSharedPreferences.getStationFromFrequency(frequencyKHz)
+            if (existing != null) {
+                FmSharedPreferences.removeStation(curIndex, existing)
+                FmSharedPreferences.save(getApplication())
+                _uiState.update { it.copy(presets = loadPresetsFromPreferences()) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing favorite", e)
+        }
+    }
+
+    fun renameFavorite(frequencyKHz: Int, newName: String) {
+        try {
+            val curIndex = FmSharedPreferences.getCurrentListIndex()
+            val presetList = FmSharedPreferences.getStationList(curIndex)
+            val station = presetList?.getStationFromFrequency(frequencyKHz)
+            if (station != null) {
+                station.name = newName
+                FmSharedPreferences.save(getApplication())
+                _uiState.update { it.copy(presets = loadPresetsFromPreferences()) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error renaming favorite", e)
         }
     }
 
@@ -682,8 +698,6 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     FmStation(frequencyKHz = freq)
                 }
                 saveScannedStations(stations)
-                autoPopulatePresetsIfEmpty(stations)
-                val updatedPresets = loadPresetsFromPreferences()
 
                 _uiState.update {
                     it.copy(
@@ -691,7 +705,6 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                         stationName = ps,
                         radioText = rt,
                         scannedStations = stations,
-                        presets = updatedPresets,
                         isScanning = false,
                         isSeeking = false,
                         userMessage = if (stations.isEmpty()) "Search complete: No stations found" else "Found ${stations.size} stations"

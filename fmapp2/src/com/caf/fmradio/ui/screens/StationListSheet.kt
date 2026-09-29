@@ -91,7 +91,7 @@ fun StationListSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Stations & Presets",
+                    text = "Stations & Favorites",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
 
@@ -142,13 +142,13 @@ fun StationListSheet(
                             modifier = Modifier.size(20.dp)
                         )
                     },
-                    text = { Text("Presets (${uiState.presets.size})") }
+                    text = { Text("Favorites (${uiState.favorites.size})") }
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val currentList = if (selectedTab == 0) uiState.scannedStations else uiState.presets
+            val currentList = if (selectedTab == 0) uiState.scannedStations else uiState.favorites
 
             if (currentList.isEmpty()) {
                 Box(
@@ -161,7 +161,7 @@ fun StationListSheet(
                         text = if (selectedTab == 0) {
                             "No stations scanned yet.\nTap 'Scan All' to discover local stations."
                         } else {
-                            "No presets saved.\nTap 'Add Preset' on any playing station."
+                            "No favorites saved.\nTap 'Add Favorite' on any playing station."
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
@@ -256,13 +256,13 @@ private fun StationListItem(
                 }
             }
 
-            // Star / Preset Toggle Button
+            // Star / Favorite Toggle Button
             IconButton(onClick = onTogglePreset) {
                 Icon(
                     painter = painterResource(
                         if (isPreset) R.drawable.ic_star else R.drawable.ic_star_border
                     ),
-                    contentDescription = if (isPreset) "Remove Preset" else "Add Preset",
+                    contentDescription = if (isPreset) "Remove from Favorites" else "Add to Favorites",
                     modifier = Modifier.size(24.dp),
                     tint = if (isPreset) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )

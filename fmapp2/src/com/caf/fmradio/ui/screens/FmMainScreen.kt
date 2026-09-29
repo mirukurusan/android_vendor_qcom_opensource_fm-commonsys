@@ -23,9 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -55,8 +53,8 @@ import com.caf.fmradio.R
 import com.caf.fmradio.data.FmStation
 import com.caf.fmradio.ui.components.FmControlBar
 import com.caf.fmradio.ui.components.FmDisplayCard
+import com.caf.fmradio.ui.components.FmFavoritesList
 import com.caf.fmradio.ui.components.FmFrequencyRuler
-import com.caf.fmradio.ui.components.FmPresetRow
 import com.caf.fmradio.viewmodel.FmRadioViewModel
 import com.caf.fmradio.viewmodel.FmUiState
 
@@ -71,7 +69,8 @@ fun FmMainScreen(
     var showStationSheet by remember { mutableStateOf(false) }
     var showSleepDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var selectedPresetForOption by remember { mutableStateOf<FmStation?>(null) }
+    var selectedFavoriteForRename by remember { mutableStateOf<FmStation?>(null) }
+    var selectedFavoriteForDelete by remember { mutableStateOf<FmStation?>(null) }
 
     // Show user messages via Snackbar
     LaunchedEffect(uiState.userMessage) {
@@ -126,11 +125,14 @@ fun FmMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Missing Headset Warning Banner
@@ -148,7 +150,7 @@ fun FmMainScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Interactive Frequency Ruler Dial
                 FmFrequencyRuler(
@@ -162,18 +164,25 @@ fun FmMainScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Favorite Presets Bar
-                FmPresetRow(
-                    uiState = uiState,
+                // Vertical Favorites List
+                FmFavoritesList(
+                    favorites = uiState.favorites,
+                    currentFrequencyKHz = uiState.currentFrequencyKHz,
+                    isCurrentFavorite = uiState.isCurrentFavorite,
+                    isPoweredOn = uiState.isPoweredOn,
                     onTune = { freq -> viewModel.tune(freq) },
-                    onToggleCurrentPreset = { viewModel.togglePreset() },
-                    onPresetLongClick = { station -> selectedPresetForOption = station }
+                    onToggleCurrentFavorite = { viewModel.toggleFavorite() },
+                    onRenameFavorite = { station -> selectedFavoriteForRename = station },
+                    onRemoveFavorite = { station -> selectedFavoriteForDelete = station },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Playback & Tuning Control Bar
             FmControlBar(
@@ -186,7 +195,7 @@ fun FmMainScreen(
                 onToggleRecording = { viewModel.toggleRecording() },
                 onStartScan = { viewModel.startScan() },
                 onCancelScan = { viewModel.cancelScan() },
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
         }
     }
@@ -237,24 +246,67 @@ fun FmMainScreen(
         )
     }
 
-    // Preset Option Dialog (Delete preset)
-    selectedPresetForOption?.let { station ->
+    // Favorite Rename Dialog
+    selectedFavoriteForRename?.let { station ->
+        var newName by remember(station) { mutableStateOf(station.name) }
         AlertDialog(
-            onDismissRequest = { selectedPresetForOption = null },
-            title = { Text(station.displayName) },
-            text = { Text("Do you want to remove this station from presets?") },
+            onDismissRequest = { selectedFavoriteForRename = null },
+            title = { Text("Rename Favorite") },
+            text = {
+                Column {
+                    Text(
+                        "Set custom name for ${station.frequencyMHzString} MHz:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        label = { Text("Station Name") },
+                        placeholder = { Text(station.displayName) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.togglePreset(station.frequencyKHz)
-                        selectedPresetForOption = null
+                        viewModel.renameFavorite(station.frequencyKHz, newName.trim())
+                        selectedFavoriteForRename = null
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedFavoriteForRename = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Favorite Delete Dialog
+    selectedFavoriteForDelete?.let { station ->
+        AlertDialog(
+            onDismissRequest = { selectedFavoriteForDelete = null },
+            title = { Text("Remove from Favorites") },
+            text = {
+                Text("Do you want to remove ${station.displayName} (${station.frequencyMHzString} MHz) from favorites?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.removeFavorite(station.frequencyKHz)
+                        selectedFavoriteForDelete = null
                     }
                 ) {
                     Text("Remove", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { selectedPresetForOption = null }) {
+                TextButton(onClick = { selectedFavoriteForDelete = null }) {
                     Text("Cancel")
                 }
             }
@@ -266,7 +318,7 @@ fun FmMainScreen(
         StationListSheet(
             uiState = uiState,
             onTune = { freq -> viewModel.tune(freq) },
-            onTogglePreset = { freq -> viewModel.togglePreset(freq) },
+            onTogglePreset = { freq -> viewModel.toggleFavorite(freq) },
             onStartScan = { viewModel.startScan() },
             onCancelScan = { viewModel.cancelScan() },
             onDismiss = { showStationSheet = false }

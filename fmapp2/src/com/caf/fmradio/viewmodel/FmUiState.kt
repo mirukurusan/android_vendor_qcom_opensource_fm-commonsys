@@ -78,8 +78,14 @@ data class FmUiState(
         }
 
     /**
-     * Returns true if the current frequency is already in the preset list
+     * Returns true if the current frequency is already in the favorites/preset list
      */
     val isCurrentPreset: Boolean
         get() = presets.any { it.frequencyKHz == currentFrequencyKHz }
+
+    val favorites: List<FmStation>
+        get() = presets
+
+    val isCurrentFavorite: Boolean
+        get() = isCurrentPreset
 }
