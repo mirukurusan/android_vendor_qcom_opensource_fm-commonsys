@@ -94,7 +94,7 @@ fun FmControlBar(
             OutlinedIconButton(
                 onClick = { onStep(false) },
                 enabled = enabled,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_chevron_left),
@@ -107,11 +107,12 @@ fun FmControlBar(
             FilledIconButton(
                 onClick = onTogglePower,
                 modifier = Modifier.size(72.dp),
+                shape = CircleShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = if (uiState.isPoweredOn) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainerHigh
                     }
                 )
             ) {
@@ -141,7 +142,7 @@ fun FmControlBar(
             OutlinedIconButton(
                 onClick = { onStep(true) },
                 enabled = enabled,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_chevron_right),
@@ -169,8 +170,8 @@ fun FmControlBar(
         // Secondary Utility Bar (Speaker, Mute, Record, Scan)
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Row(
                 modifier = Modifier
@@ -203,7 +204,7 @@ fun FmControlBar(
                     iconRes = if (uiState.isRecording) R.drawable.ic_stop else R.drawable.ic_fiber_manual_record,
                     label = if (uiState.isRecording) "Stop Rec" else "Record",
                     active = uiState.isRecording,
-                    activeColor = RadioRecordingRed,
+                    activeColor = MaterialTheme.colorScheme.error,
                     enabled = enabled,
                     onClick = onToggleRecording
                 )
@@ -233,7 +234,7 @@ private fun UtilityButton(
 ) {
     val backgroundColor = when {
         !enabled -> Color.Transparent
-        active -> activeColor.copy(alpha = 0.15f)
+        active -> activeColor.copy(alpha = 0.18f)
         else -> Color.Transparent
     }
     val contentColor = when {
@@ -244,20 +245,20 @@ private fun UtilityButton(
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             painter = painterResource(iconRes),
             contentDescription = label,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(22.dp),
             tint = contentColor
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
