@@ -72,11 +72,12 @@ fun FmDisplayCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp)),
+            .clip(MaterialTheme.shapes.extraLarge),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -131,7 +132,7 @@ fun FmDisplayCard(
             // Main Frequency Big Display
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .clickable(enabled = uiState.isPoweredOn, onClick = onFrequencyClick)
                     .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.Bottom
@@ -144,9 +145,9 @@ fun FmDisplayCard(
                         letterSpacing = (-1).sp
                     ),
                     color = if (uiState.isPoweredOn) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        MaterialTheme.colorScheme.onSurface
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -170,7 +171,7 @@ fun FmDisplayCard(
             Text(
                 text = stationTitle,
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
 
@@ -200,14 +201,25 @@ fun FmDisplayCard(
 private fun StatusBadge(
     text: String,
     active: Boolean,
-    badgeColor: Color = MaterialTheme.colorScheme.primary,
+    badgeColor: Color? = null,
     iconRes: Int? = null,
     modifier: Modifier = Modifier
 ) {
+    val containerColor = when {
+        !active -> MaterialTheme.colorScheme.surfaceContainer
+        badgeColor != null -> badgeColor.copy(alpha = 0.2f)
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+    val contentColor = when {
+        !active -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        badgeColor != null -> badgeColor
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(6.dp),
-        color = if (active) badgeColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+        shape = MaterialTheme.shapes.extraSmall,
+        color = containerColor
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -218,14 +230,14 @@ private fun StatusBadge(
                     painter = painterResource(iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(12.dp),
-                    tint = if (active) badgeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    tint = contentColor
                 )
                 Spacer(modifier = Modifier.width(3.dp))
             }
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = if (active) badgeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                color = contentColor
             )
         }
     }
@@ -245,8 +257,8 @@ private fun RecordingBadge(duration: String) {
     )
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = RadioRecordingRed.copy(alpha = 0.15f)
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.errorContainer
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -256,14 +268,14 @@ private fun RecordingBadge(duration: String) {
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(RadioRecordingRed)
+                    .background(MaterialTheme.colorScheme.error)
                     .alpha(alpha)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = "REC $duration",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = RadioRecordingRed
+                color = MaterialTheme.colorScheme.onErrorContainer
             )
         }
     }

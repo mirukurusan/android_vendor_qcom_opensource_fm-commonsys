@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -80,7 +81,7 @@ fun FmFrequencyRuler(
 
     val currentOnFrequencyChanged by rememberUpdatedState(onFrequencyChanged)
 
-    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
     val onSurfaceColor = MaterialTheme.colorScheme.onSurfaceVariant
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -88,7 +89,7 @@ fun FmFrequencyRuler(
         modifier = modifier
             .fillMaxWidth()
             .height(110.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(surfaceColor)
             .pointerInput(enabled, minFrequencyKHz, maxFrequencyKHz, stepSizeKHz) {
                 if (!enabled) return@pointerInput
@@ -179,7 +180,7 @@ fun FmFrequencyRuler(
                     val mhz = freq / 1000
                     drawContext.canvas.nativeCanvas.apply {
                         val paint = android.graphics.Paint().apply {
-                            color = onSurfaceColor.hashCode()
+                            color = onSurfaceColor.toArgb()
                             textSize = 12.dp.toPx()
                             textAlign = android.graphics.Paint.Align.CENTER
                             isAntiAlias = true
