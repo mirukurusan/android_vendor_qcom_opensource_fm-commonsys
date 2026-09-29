@@ -78,7 +78,7 @@ public class PresetStation
 
    public boolean equals(PresetStation station) {
       boolean equal = false;
-      if (mFrequency == station.getFrequency())
+      if (station != null && mFrequency == station.getFrequency())
       {
          if (mPty == (station.getPty()))
          {
@@ -92,6 +92,20 @@ public class PresetStation
          }
       }
       return equal;
+   }
+
+   @Override
+   public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o instanceof PresetStation) {
+         return equals((PresetStation) o);
+      }
+      return false;
+   }
+
+   @Override
+   public int hashCode() {
+      return mFrequency;
    }
 
    public void setName(String name){

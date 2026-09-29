@@ -178,7 +178,9 @@ public class FmSharedPreferences
       mContext = context.getApplicationContext();
       if (mFMConfiguration == null) {
          mFMConfiguration = new FmConfig();
-         Load();
+      }
+      if (mListOfPlists.isEmpty()) {
+         load(mContext);
       }
    }
 
@@ -449,83 +451,91 @@ public class FmSharedPreferences
    }
 
 
-   public void  Load(){
-      Log.d(LOGTAG, "Load preferences ");
-      if(mContext == null)
-      {
+   public static void load(Context context) {
+      if (context == null) {
          return;
       }
-      SharedPreferences sp = mContext.getSharedPreferences(SHARED_PREFS, Context.MODE_PRIVATE);
+      Log.d(LOGTAG, "load preferences ");
+      if (mFMConfiguration == null) {
+         mFMConfiguration = new FmConfig();
+      }
+      SharedPreferences sp = context.getApplicationContext().getSharedPreferences(SHARED_PREFS, Context.MODE_PRIVATE);
       mTunedFrequency = sp.getInt(PREF_LAST_TUNED_FREQUENCY, DEFAULT_NO_FREQUENCY);
       mRecordDuration = sp.getInt(LAST_RECORD_DURATION, RECORD_DUR_INDEX_0_VAL);
       mAFAutoSwitch = sp.getBoolean(LAST_AF_JUMP_VALUE, true);
       mAudioOutputMode = sp.getBoolean(AUDIO_OUTPUT_MODE, true);
 
-      if(sp.getInt(FMCONFIG_COUNTRY, 0) == REGIONAL_BAND_USER_DEFINED) {
+      if (sp.getInt(FMCONFIG_COUNTRY, 0) == REGIONAL_BAND_USER_DEFINED) {
          mBandMinFreq = sp.getInt(FMCONFIG_MIN, mBandMinFreq);
          mBandMaxFreq = sp.getInt(FMCONFIG_MAX, mBandMaxFreq);
          mChanSpacing = sp.getInt(FMCONFIG_STEP, mChanSpacing);
       }
 
       int num_lists = sp.getInt(LIST_NUM, 1);
-      if (mListOfPlists.size() == 0) {
+      mListOfPlists.clear();
+      mNameMap.clear();
 
-         for (int listIter = 0; listIter < num_lists; listIter++) {
-             String listName = sp.getString(LIST_NAME + listIter, "FM - " + (listIter+1));
-             int numStations = sp.getInt(STATION_NUM + listIter, 1);
-             if (listIter == 0) {
-                 createFirstPresetList(listName);
-             } else {
-                 createPresetList(listName);
-             }
+      for (int listIter = 0; listIter < num_lists; listIter++) {
+          String listName = sp.getString(LIST_NAME + listIter, "FM");
+          int numStations = sp.contains(STATION_NUM + listIter) ? sp.getInt(STATION_NUM + listIter, 0) : 0;
+          if (listIter == 0) {
+              createFirstPresetList(listName);
+          } else {
+              createPresetList(listName);
+          }
 
-             PresetList curList = mListOfPlists.get(listIter);
-             for (int stationIter = 0; stationIter < numStations; stationIter++) {
-                  String stationName = sp.getString(STATION_NAME + listIter + "x" + stationIter,
-                                                      DEFAULT_NO_NAME);
-                  int stationFreq = sp.getInt(STATION_FREQUENCY + listIter + "x" + stationIter,
-                                                   DEFAULT_NO_FREQUENCY);
-                  PresetStation station = curList.addStation(stationName, stationFreq);
+          PresetList curList = mListOfPlists.get(listIter);
+          for (int stationIter = 0; stationIter < numStations; stationIter++) {
+               String freqKey = STATION_FREQUENCY + listIter + "x" + stationIter;
+               if (!sp.contains(freqKey)) {
+                   continue;
+               }
+               int stationFreq = sp.getInt(freqKey, DEFAULT_NO_FREQUENCY);
+               if (stationFreq <= 0) {
+                   continue;
+               }
+               String stationName = sp.getString(STATION_NAME + listIter + "x" + stationIter,
+                                                   DEFAULT_NO_NAME);
+               PresetStation station = curList.addStation(stationName, stationFreq);
 
-                  int stationId = sp.getInt(STATION_ID + listIter + "x" + stationIter,
-                                              DEFAULT_NO_STATIONID);
-                  station.setPI(stationId);
+               int stationId = sp.getInt(STATION_ID + listIter + "x" + stationIter,
+                                           DEFAULT_NO_STATIONID);
+               station.setPI(stationId);
 
-                  int pty = sp.getInt(STATION_PTY + listIter + "x" + stationIter, DEFAULT_NO_PTY);
-                  station.setPty(pty);
+               int pty = sp.getInt(STATION_PTY + listIter + "x" + stationIter, DEFAULT_NO_PTY);
+               station.setPty(pty);
 
-                  int rdsSupported = sp.getInt(STATION_RDS + listIter + "x" + stationIter,
-                                                 DEFAULT_NO_RDSSUP);
-                  if (rdsSupported != 0) {
-                      station.setRDSSupported(true);
-                  } else {
-                      station.setRDSSupported(false);
-                  }
-             }
-         }
+               int rdsSupported = sp.getInt(STATION_RDS + listIter + "x" + stationIter,
+                                              DEFAULT_NO_RDSSUP);
+               station.setRDSSupported(rdsSupported != 0);
+          }
       }
+      if (mListOfPlists.isEmpty()) {
+          createFirstPresetList("FM");
+      }
+
       /* Load Configuration */
       if (Locale.getDefault().equals(Locale.CHINA)) {
           setCountry(sp.getInt(FMCONFIG_COUNTRY, REGIONAL_BAND_CHINA));
-        } else if (mContext.getResources()
-                .getBoolean(R.bool.def_fm_country_location_enabled)) {
-            setCountry(sp.getInt(FMCONFIG_COUNTRY, REGIONAL_BAND_INDIA));
+      } else if (context.getResources().getBoolean(R.bool.def_fm_country_location_enabled)) {
+          setCountry(sp.getInt(FMCONFIG_COUNTRY, REGIONAL_BAND_INDIA));
       } else {
-          mDefaultCountryIndex =
-                  getBand(mContext.getResources().getInteger(R.integer.default_country_index));
+          mDefaultCountryIndex = getBand(context.getResources().getInteger(R.integer.default_country_index));
           setCountry(sp.getInt(FMCONFIG_COUNTRY, mDefaultCountryIndex));
       }
       /* Last list the user was navigating */
       mListIndex = sp.getInt(LAST_LIST_INDEX, 0);
-      if(mListIndex >= num_lists)
-      {
-         mListIndex=0;
+      if (mListIndex >= num_lists || mListIndex < 0) {
+         mListIndex = 0;
       }
    }
 
+   public void Load() {
+      load(mContext);
+   }
+
    public static void save(Context context) {
-      if(context == null)
-      {
+      if (context == null) {
          return;
       }
       Log.d(LOGTAG, "Save preferences ");
@@ -540,18 +550,16 @@ public class FmSharedPreferences
       /* Last list the user was navigating */
       ed.putInt(LAST_LIST_INDEX, mListIndex);
 
-      for (int listIter = 0; listIter < numLists; listIter++)
-      {
+      for (int listIter = 0; listIter < numLists; listIter++) {
          PresetList curList = mListOfPlists.get(listIter);
          ed.putString(LIST_NAME + listIter, curList.getName());
          int numStations = curList.getStationCount();
+         int prevStations = sp.getInt(STATION_NUM + listIter, 0);
          ed.putInt(STATION_NUM + listIter, numStations);
          int numStation = 0;
-         for (int stationIter = 0; stationIter < numStations; stationIter++)
-         {
+         for (int stationIter = 0; stationIter < numStations; stationIter++) {
             PresetStation station = curList.getStationFromIndex(stationIter);
-            if (station != null)
-            {
+            if (station != null) {
                ed.putString(STATION_NAME + listIter + "x" + numStation,
                             station.getName());
                ed.putInt(STATION_FREQUENCY + listIter + "x" + numStation,
@@ -562,14 +570,21 @@ public class FmSharedPreferences
                          station.getPty());
                ed.putInt(STATION_RDS + listIter + "x" + numStation,
                          (station.getRDSSupported() == true? 1:0));
-               numStation ++;
+               numStation++;
             }
+         }
+         for (int stale = numStation; stale < prevStations; stale++) {
+            ed.remove(STATION_NAME + listIter + "x" + stale);
+            ed.remove(STATION_FREQUENCY + listIter + "x" + stale);
+            ed.remove(STATION_ID + listIter + "x" + stale);
+            ed.remove(STATION_PTY + listIter + "x" + stale);
+            ed.remove(STATION_RDS + listIter + "x" + stale);
          }
       }
 
       /* Save Configuration */
       ed.putInt(FMCONFIG_COUNTRY, mCountry);
-      if(mCountry == REGIONAL_BAND_USER_DEFINED) {
+      if (mCountry == REGIONAL_BAND_USER_DEFINED) {
          ed.putInt(FMCONFIG_MIN, mBandMinFreq);
          ed.putInt(FMCONFIG_MAX, mBandMaxFreq);
          ed.putInt(FMCONFIG_STEP, mChanSpacing);

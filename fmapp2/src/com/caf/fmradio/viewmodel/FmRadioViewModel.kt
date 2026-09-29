@@ -74,9 +74,9 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
         // Initialize SharedPreferences bounds and presets
         try {
-            FmSharedPreferences.createPresetList("FM")
+            FmSharedPreferences.load(application)
         } catch (e: Exception) {
-            Log.e(TAG, "Error ensuring preset list", e)
+            Log.e(TAG, "Error loading FmSharedPreferences", e)
         }
         loadConfigurationAndPresets()
 
