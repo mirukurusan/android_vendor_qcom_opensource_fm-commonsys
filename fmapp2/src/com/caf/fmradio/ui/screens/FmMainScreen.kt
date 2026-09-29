@@ -28,7 +28,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -61,13 +60,13 @@ import com.caf.fmradio.viewmodel.FmUiState
 @Composable
 fun FmMainScreen(
     viewModel: FmRadioViewModel,
-    uiState: FmUiState,
-    onOpenStationList: () -> Unit = {},
-    onOpenSleepTimer: () -> Unit = {},
-    onOpenSettings: () -> Unit = {}
+    uiState: FmUiState
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showTuneDialog by remember { mutableStateOf(false) }
+    var showStationSheet by remember { mutableStateOf(false) }
+    var showSleepDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     var selectedPresetForOption by remember { mutableStateOf<FmStation?>(null) }
 
     // Show user messages via Snackbar
@@ -89,17 +88,17 @@ fun FmMainScreen(
                 },
                 actions = {
                     // Station List / Search Action
-                    TextButton(onClick = onOpenStationList) {
+                    TextButton(onClick = { showStationSheet = true }) {
                         Text("Stations", fontSize = 14.sp)
                     }
 
                     // Sleep Timer Action
-                    TextButton(onClick = onOpenSleepTimer) {
+                    TextButton(onClick = { showSleepDialog = true }) {
                         Text("Sleep", fontSize = 14.sp)
                     }
 
                     // Settings Action
-                    TextButton(onClick = onOpenSettings) {
+                    TextButton(onClick = { showSettingsDialog = true }) {
                         Text("Settings", fontSize = 14.sp)
                     }
                 },
@@ -120,6 +119,11 @@ fun FmMainScreen(
         ) {
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // Missing Headset Warning Banner
+                if (!uiState.isAntennaAvailable) {
+                    NoAntennaBanner(modifier = Modifier.padding(bottom = 12.dp))
+                }
 
                 // Station Info and Digital Display Card
                 FmDisplayCard(
@@ -242,4 +246,34 @@ fun FmMainScreen(
             }
         )
     }
+
+    // Station List Bottom Sheet
+    if (showStationSheet) {
+        StationListSheet(
+            uiState = uiState,
+            onTune = { freq -> viewModel.tune(freq) },
+            onTogglePreset = { freq -> viewModel.togglePreset(freq) },
+            onStartScan = { viewModel.startScan() },
+            onDismiss = { showStationSheet = false }
+        )
+    }
+
+    // Sleep Timer Dialog
+    if (showSleepDialog) {
+        SleepTimerDialog(
+            currentRemainingSec = uiState.sleepTimerRemainingSeconds,
+            onSetTimer = { minutes -> viewModel.setSleepTimer(minutes) },
+            onCancelTimer = { viewModel.cancelSleepTimer() },
+            onDismiss = { showSleepDialog = false }
+        )
+    }
+
+    // Settings Dialog
+    if (showSettingsDialog) {
+        SettingsDialog(
+            uiState = uiState,
+            onDismiss = { showSettingsDialog = false }
+        )
+    }
 }
+
