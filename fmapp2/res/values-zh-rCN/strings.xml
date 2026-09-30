@@ -47,6 +47,8 @@
     <string name="msg_searching_title">自动选择预设</string>
     <string name="msg_searching">正在搜索强信号的电台以创建一个预设列表\u2026</string>
     <string name="msg_noantenna">请插上耳机来使用 FM 收音机</string>
+    <string name="msg_noantenna_title">未连接耳机天线</string>
+    <string name="msg_noantenna_desc">FM 收音机使用耳机线充当天线。未插入耳机时信号可能较弱，但您仍可通过扬声器收听。</string>
     <string name="dialog_sleep_title">睡眠时自动关闭的时间</string>
     <string name="presetlist_select_name">选择“<xliff:g id="preset_name">%1$s</xliff:g>”</string>
     <string name="presetlist_add_new">添加新列表</string>

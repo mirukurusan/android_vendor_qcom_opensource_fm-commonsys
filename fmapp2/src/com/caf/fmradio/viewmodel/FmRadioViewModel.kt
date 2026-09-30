@@ -60,9 +60,12 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                 val state = intent.getIntExtra("state", 0)
                 val plugged = state == 1
                 Log.d(TAG, "Headset plug changed: plugged=$plugged")
-                _uiState.update { it.copy(isAntennaAvailable = plugged) }
-                if (!plugged && _uiState.value.isPoweredOn) {
-                    _uiState.update { it.copy(userMessage = "Headset unplugged. Antenna disconnected.") }
+                _uiState.update {
+                    it.copy(
+                        isAntennaAvailable = plugged,
+                        isAntennaBannerDismissed = false,
+                        isSpeakerOn = if (!plugged) true else it.isSpeakerOn
+                    )
                 }
             }
         }
@@ -232,18 +235,18 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
             stopRecordTimer()
             updateRssiPolling()
         } else {
-            if (!state.isAntennaAvailable) {
-                _uiState.update { it.copy(userMessage = "Please plug in wired headset as antenna") }
-                return
-            }
             val success = repository.fmOn()
             Log.d(TAG, "fmOn executed, success=$success")
             if (success) {
+                val speakerEnabled = if (!state.isAntennaAvailable) true else repository.isSpeakerEnabled()
+                if (!state.isAntennaAvailable) {
+                    repository.enableSpeaker(true)
+                }
                 _uiState.update {
                     it.copy(
                         isPoweredOn = true,
                         isMuted = repository.isMuted(),
-                        isSpeakerOn = repository.isSpeakerEnabled()
+                        isSpeakerOn = speakerEnabled
                     )
                 }
                 tune(_uiState.value.currentFrequencyKHz)
@@ -314,9 +317,17 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun toggleSpeaker() {
+        if (!_uiState.value.isAntennaAvailable) {
+            _uiState.update { it.copy(userMessage = "No headset connected. Audio routed to speaker.") }
+            return
+        }
         val next = !_uiState.value.isSpeakerOn
         repository.enableSpeaker(next)
         _uiState.update { it.copy(isSpeakerOn = next) }
+    }
+
+    fun dismissAntennaBanner() {
+        _uiState.update { it.copy(isAntennaBannerDismissed = true) }
     }
 
     fun toggleRecording() {
@@ -515,17 +526,17 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
     override fun onServiceConnected() {
         viewModelScope.launch {
             loadConfigurationAndPresets()
-            val isAntenna = repository.isAntennaAvailable()
+            val isHeadsetPlugged = repository.isWiredHeadsetAvailable()
             val isFmOn = repository.isFmOn()
             val tuned = try {
                 FmSharedPreferences.getTunedFrequency().takeIf { it > 0 } ?: _uiState.value.currentFrequencyKHz
             } catch (e: Exception) {
                 _uiState.value.currentFrequencyKHz
             }
-            Log.d(TAG, "onServiceConnected: isFmOn=$isFmOn, isAntenna=$isAntenna, tuned=$tuned")
+            Log.d(TAG, "onServiceConnected: isFmOn=$isFmOn, isHeadsetPlugged=$isHeadsetPlugged, tuned=$tuned")
 
-            if (!isFmOn && isAntenna) {
-                // Auto start FM on launch when antenna is present (matching legacy FMRadio behavior)
+            if (!isFmOn && isHeadsetPlugged) {
+                // Auto start FM on launch only when wired headset is plugged in
                 val started = repository.fmOn()
                 Log.d(TAG, "Auto fmOn result: $started")
                 if (started) {
@@ -558,7 +569,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     it.copy(
                         isServiceConnected = true,
                         isPoweredOn = true,
-                        isAntennaAvailable = isAntenna,
+                        isAntennaAvailable = isHeadsetPlugged,
                         currentFrequencyKHz = tuned,
                         isMuted = repository.isMuted(),
                         isSpeakerOn = repository.isSpeakerEnabled(),
@@ -572,7 +583,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
                     it.copy(
                         isServiceConnected = true,
                         isPoweredOn = false,
-                        isAntennaAvailable = isAntenna,
+                        isAntennaAvailable = isHeadsetPlugged,
                         currentFrequencyKHz = tuned
                     )
                 }

@@ -50,6 +50,8 @@
     <string name="msg_searching">Searching for strong stations to create a presets list\u2026</string>
 
     <string name="msg_noantenna">Please plug in a headset to use FM radio</string>
+    <string name="msg_noantenna_title">Headset Antenna Not Connected</string>
+    <string name="msg_noantenna_desc">FM radio uses headphones as an antenna. Signal may be weak without headphones, but you can still listen via speaker.</string>
     <string name="dialog_sleep_title">Auto-off sleep time</string>
     <string name="presetlist_select_name">Select \'<xliff:g id="presetlist_name">%1$s</xliff:g>\'</string>
     <string name="presetlist_add_new">Add new list</string>

@@ -1069,48 +1069,24 @@ public class FMRadioService extends Service
 
     final Runnable    mHeadsetPluginHandler = new Runnable() {
         public void run() {
-            /* Update the UI based on the state change of the headset/antenna*/
-            if(!isAntennaAvailable())
-            {
-                mSpeakerPhoneOn = false;
-                if (!isFmOn())
-                    return;
-                /* Disable FM and let the UI know */
-                fmOff(FM_OFF_FROM_ANTENNA);
-                try
-                {
-                    /* Notify the UI/Activity, only if the service is "bound"
-                  by an activity and if Callbacks are registered
-                     */
-                    if((mServiceInUse) && (mCallbacks != null) )
-                    {
-                        mCallbacks.onDisabled();
-                    }
-                } catch (RemoteException e)
-                {
-                    e.printStackTrace();
-                }
+            /* Update antenna and audio routing when headset is plugged or unplugged */
+            if (mReceiver != null && isFmOn()) {
+                mReceiver.setInternalAntenna(mInternalAntennaAvailable || !mHeadsetPlugged);
             }
-            else
-            {
-                /* headset is plugged back in,
-               So turn on FM if:
-               - FM is not already ON.
-               - If the FM UI/Activity is in the foreground
-                 (the service is "bound" by an activity
-                  and if Callbacks are registered)
-                 */
-                if ((!isFmOn()) && (mServiceInUse)
-                        && (mCallbacks != null))
-                {
-                    if( true != fmOn() ) {
-                        return;
-                    }
-                    try
-                    {
+            if (isFmOn()) {
+                if (!mHeadsetPlugged) {
+                    // Headset unplugged while playing: switch to speaker
+                    enableSpeaker(true);
+                } else {
+                    // Headset plugged in: switch to headset
+                    enableSpeaker(false);
+                }
+            } else if (mHeadsetPlugged && mServiceInUse && mCallbacks != null) {
+                // Headset plugged in while FM off: auto-enable if UI is attached
+                if (fmOn()) {
+                    try {
                         mCallbacks.onEnabled();
-                    } catch (RemoteException e)
-                    {
+                    } catch (RemoteException e) {
                         e.printStackTrace();
                     }
                 }
@@ -1446,6 +1422,9 @@ public class FMRadioService extends Service
            }
        // In FM stop, the audio route is set to default audio device
        }
+       if (!mHeadsetPlugged) {
+           mSpeakerPhoneOn = true;
+       }
        String temp = mSpeakerPhoneOn ? "Speaker" : "WiredHeadset";
        Log.d(LOGTAG, "Route audio to " + temp);
        if (mSpeakerPhoneOn) {
@@ -1456,6 +1435,11 @@ public class FMRadioService extends Service
        if (mUseAudioSession) {
            startApplicationLoopBack(mAudioDevice);
        } else {
+           AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+           if (audioManager != null) {
+               audioManager.setParameters(FM_PARAM_SPEAKERPHONE + "=" +
+                                          (mSpeakerPhoneOn ? "on" : "off"));
+           }
            configureFMDeviceLoopback(true);
            /* The HAL zeroes the FM volume while starting the path, re-apply the
             * user selected volume a little later */
@@ -2989,7 +2973,7 @@ public class FMRadioService extends Service
             /* Read back to verify the internal Antenna mode*/
             readInternalAntennaAvailable();
 
-            bStatus = mReceiver.setInternalAntenna(mInternalAntennaAvailable);
+            bStatus = mReceiver.setInternalAntenna(mInternalAntennaAvailable || !mHeadsetPlugged);
             Log.d(LOGTAG, "setInternalAntenna done, Status :" +  bStatus);
 
             startNotification();
@@ -3772,12 +3756,7 @@ public class FMRadioService extends Service
     */
    public boolean isAntennaAvailable()
    {
-      boolean bAvailable = false;
-      if ((mInternalAntennaAvailable) || (mHeadsetPlugged) )
-      {
-         bAvailable = true;
-      }
-      return bAvailable;
+      return true;
    }
 
    public static long getAvailableSpace() {

@@ -28,6 +28,7 @@ data class FmUiState(
     val isServiceConnected: Boolean = false,
     val isPoweredOn: Boolean = false,
     val isAntennaAvailable: Boolean = true,
+    val isAntennaBannerDismissed: Boolean = false,
     val currentFrequencyKHz: Int = 87500,
     val minFrequencyKHz: Int = 87500,
     val maxFrequencyKHz: Int = 108000,

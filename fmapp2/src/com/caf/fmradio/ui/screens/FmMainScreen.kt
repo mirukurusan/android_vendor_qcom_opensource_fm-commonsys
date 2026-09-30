@@ -173,8 +173,11 @@ fun FmMainScreen(
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            if (!uiState.isAntennaAvailable) {
-                                NoAntennaBanner(modifier = Modifier.padding(bottom = 12.dp))
+                            if (!uiState.isAntennaAvailable && !uiState.isAntennaBannerDismissed) {
+                                NoAntennaBanner(
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    onDismiss = { viewModel.dismissAntennaBanner() }
+                                )
                             }
 
                             FmDisplayCard(
@@ -255,8 +258,11 @@ fun FmMainScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // Missing Headset Warning Banner
-                        if (!uiState.isAntennaAvailable) {
-                            NoAntennaBanner(modifier = Modifier.padding(bottom = 12.dp))
+                        if (!uiState.isAntennaAvailable && !uiState.isAntennaBannerDismissed) {
+                            NoAntennaBanner(
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                onDismiss = { viewModel.dismissAntennaBanner() }
+                            )
                         }
 
                         // Station Info and Digital Display Card

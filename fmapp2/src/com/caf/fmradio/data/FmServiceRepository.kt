@@ -323,6 +323,12 @@ class FmServiceRepository {
         false
     }
 
+    fun isWiredHeadsetAvailable(): Boolean = try {
+        service?.isWiredHeadsetAvailable ?: false
+    } catch (e: RemoteException) {
+        false
+    }
+
     fun getProgramService(): String = try {
         service?.programService ?: ""
     } catch (e: RemoteException) {
