@@ -58,6 +58,11 @@
     <string name="preset_delete">删除</string>
     <string name="preset_search">搜索“<xliff:g id="preset_pi">%1$s</xliff:g>”</string>
     <string name="stat_notif_frequency">\'<xliff:g id="frequency">%1$s</xliff:g>\' MHz</string>
+    <string name="notification_action_prev">上一台</string>
+    <string name="notification_action_next">下一台</string>
+    <string name="notification_action_mute">静音</string>
+    <string name="notification_action_unmute">取消静音</string>
+    <string name="notification_action_stop">停止</string>
     <string name="regional_band">区域波段</string>
     <string name="regional_band_entry_north_america">北美</string>
     <string name="regional_band_entry_europe">欧洲</string>
