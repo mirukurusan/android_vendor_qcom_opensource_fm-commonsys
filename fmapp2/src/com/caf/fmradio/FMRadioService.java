@@ -127,6 +127,8 @@ public class FMRadioService extends Service
    private static final int FMRADIOSERVICE_STATUS = 101;
    private static final String FMRADIO_DEVICE_FD_STRING = "/dev/radio0";
    private static final String FMRADIO_NOTIFICATION_CHANNEL = "fmradio_notification_channel";
+   public static final String ACTION_PLAY = "com.caf.fmradio.action.PLAY";
+   public static final String ACTION_PAUSE = "com.caf.fmradio.action.PAUSE";
    public static final String ACTION_PREV = "com.caf.fmradio.action.PREV";
    public static final String ACTION_NEXT = "com.caf.fmradio.action.NEXT";
    public static final String ACTION_TOGGLE_MUTE = "com.caf.fmradio.action.TOGGLE_MUTE";
@@ -264,6 +266,7 @@ public class FMRadioService extends Service
 
    private boolean mEventReceived = false;
    private boolean isfmOffFromApplication = false;
+   private boolean mIsPlaybackPaused = false;
    private AudioFocusRequest mGainFocusReq;
    private PhoneStateCallback mPhoneStateCallback;
 
@@ -1336,27 +1339,20 @@ public class FMRadioService extends Service
 
         @Override
         public void onStop() {
+            Log.d(LOGTAG, "SessionCallback: onStop");
             stopPlaybackFromNotification();
         }
 
         @Override
         public void onPlay() {
             Log.d(LOGTAG, "SessionCallback: onPlay");
-            if (!isFmOn() && isAntennaAvailable()) {
-                fmOn();
-                if (mCallbacks != null) {
-                    try {
-                        mCallbacks.onEnabled();
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
+            resumePlaybackFromNotification();
         }
 
         @Override
         public void onPause() {
-            stopPlaybackFromNotification();
+            Log.d(LOGTAG, "SessionCallback: onPause");
+            pausePlaybackFromNotification();
         }
 
         @Override
@@ -1364,6 +1360,8 @@ public class FMRadioService extends Service
             Log.d(LOGTAG, "SessionCallback: onCustomAction action=" + action);
             if (ACTION_TOGGLE_MUTE.equals(action)) {
                 toggleMuteFromNotification();
+            } else if (ACTION_STOP.equals(action)) {
+                stopPlaybackFromNotification();
             }
         }
    };
@@ -2113,11 +2111,13 @@ public class FMRadioService extends Service
 
           String title = getString(R.string.app_name);
           String stationName = getProgramService();
-          if (TextUtils.isEmpty(stationName)) {
+          if (TextUtils.isEmpty(stationName) || isFrequencyString(stationName, FmSharedPreferences.getTunedFrequency())) {
+              stationName = null;
               PresetList curList = FmSharedPreferences.getStationList(FmSharedPreferences.getCurrentListIndex());
               if (curList != null) {
                   PresetStation preset = curList.getStationFromFrequency(FmSharedPreferences.getTunedFrequency());
-                  if (preset != null && !TextUtils.isEmpty(preset.getName())) {
+                  if (preset != null && !TextUtils.isEmpty(preset.getName())
+                          && !isFrequencyString(preset.getName(), FmSharedPreferences.getTunedFrequency())) {
                       stationName = preset.getName();
                   }
               }
@@ -2163,13 +2163,20 @@ public class FMRadioService extends Service
                       isMuted() ? R.drawable.ic_volume_off : R.drawable.ic_volume_up
                   ).build();
 
+                  PlaybackState.CustomAction stopCustomAction = new PlaybackState.CustomAction.Builder(
+                      ACTION_STOP,
+                      getString(R.string.notification_action_stop),
+                      R.drawable.ic_stop
+                  ).build();
+
                   PlaybackState.Builder stateBuilder = new PlaybackState.Builder()
                       .setActions(actions)
                       .addCustomAction(muteCustomAction)
+                      .addCustomAction(stopCustomAction)
                       .setState(
-                          PlaybackState.STATE_PLAYING,
+                          mIsPlaybackPaused ? PlaybackState.STATE_PAUSED : PlaybackState.STATE_PLAYING,
                           PlaybackState.PLAYBACK_POSITION_UNKNOWN,
-                          1.0f
+                          mIsPlaybackPaused ? 0.0f : 1.0f
                       );
                   mSession.setPlaybackState(stateBuilder.build());
                   if (!mSession.isActive()) {
@@ -2194,7 +2201,11 @@ public class FMRadioService extends Service
           if (mSession != null) {
               mediaStyle.setMediaSession(mSession.getSessionToken());
           }
-          mediaStyle.setShowActionsInCompactView(0, 1, 2);
+          mediaStyle.setShowActionsInCompactView(0, 2, 3);
+
+          Intent deleteIntent = new Intent(this, FMRadioService.class).setAction(ACTION_STOP);
+          PendingIntent deletePendingIntent = PendingIntent.getService(
+              this, 205, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
           Notification.Builder builder = new Notification.Builder(context, FMRADIO_NOTIFICATION_CHANNEL)
               .setSmallIcon(R.drawable.stat_notify_fm)
@@ -2202,9 +2213,10 @@ public class FMRadioService extends Service
               .setContentText(contentText)
               .setContentIntent(PendingIntent.getActivity(this,
                   0, new Intent("com.caf.fmradio.FMRADIO_ACTIVITY"), PendingIntent.FLAG_IMMUTABLE))
+              .setDeleteIntent(deletePendingIntent)
               .setStyle(mediaStyle)
               .setVisibility(Notification.VISIBILITY_PUBLIC)
-              .setOngoing(true);
+              .setOngoing(isFmOn() && !mIsPlaybackPaused);
 
           if (isFmOn()) {
               // 1. Previous Station
@@ -2270,12 +2282,19 @@ public class FMRadioService extends Service
           toggleMuteFromNotification();
       } else if (ACTION_STOP.equals(action)) {
           stopPlaybackFromNotification();
+      } else if (ACTION_PAUSE.equals(action)) {
+          pausePlaybackFromNotification();
+      } else if (ACTION_PLAY.equals(action)) {
+          resumePlaybackFromNotification();
       }
    }
 
    private void nextStation() {
       Log.d(LOGTAG, "nextStation");
       if (!isFmOn()) return;
+      if (mIsPlaybackPaused) {
+          resumePlaybackFromNotification();
+      }
       if (isSearchInProgress()) {
           cancelSearch();
       }
@@ -2317,6 +2336,9 @@ public class FMRadioService extends Service
    private void previousStation() {
       Log.d(LOGTAG, "previousStation");
       if (!isFmOn()) return;
+      if (mIsPlaybackPaused) {
+          resumePlaybackFromNotification();
+      }
       if (isSearchInProgress()) {
           cancelSearch();
       }
@@ -2382,6 +2404,7 @@ public class FMRadioService extends Service
 
    private void stopPlaybackFromNotification() {
       Log.d(LOGTAG, "stopPlaybackFromNotification");
+      mIsPlaybackPaused = false;
       if (isFmOn()) {
           fmOff(FM_OFF_FROM_APPLICATION);
           if (mCallbacks != null) {
@@ -2394,8 +2417,65 @@ public class FMRadioService extends Service
       }
    }
 
+   private void pausePlaybackFromNotification() {
+      Log.d(LOGTAG, "pausePlaybackFromNotification");
+      if (isFmOn() && !mIsPlaybackPaused) {
+          mIsPlaybackPaused = true;
+          stopFM();
+          AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+          if (audioManager != null && mGainFocusReq != null) {
+              audioManager.abandonAudioFocusRequest(mGainFocusReq);
+          }
+          startNotification();
+      }
+   }
+
+   private void resumePlaybackFromNotification() {
+      Log.d(LOGTAG, "resumePlaybackFromNotification");
+      if (isFmOn() && mIsPlaybackPaused) {
+          mIsPlaybackPaused = false;
+          AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+          if (audioManager != null && mGainFocusReq != null) {
+              audioManager.requestAudioFocus(mGainFocusReq);
+          }
+          startFM();
+          startNotification();
+      } else if (!isFmOn() && isAntennaAvailable()) {
+          mIsPlaybackPaused = false;
+          fmOn();
+          if (mCallbacks != null) {
+              try {
+                  mCallbacks.onEnabled();
+              } catch (RemoteException e) {
+                  e.printStackTrace();
+              }
+          }
+      }
+   }
+
+   private boolean isFrequencyString(String name, int freqKHz) {
+      if (TextUtils.isEmpty(name)) {
+          return true;
+      }
+      String trimmed = name.trim();
+      String freqStr = "" + (freqKHz / 1000.0);
+      String freqFmt = String.format(Locale.getDefault(), "%.1f", freqKHz / 1000.0);
+      if (trimmed.equals(freqStr) || trimmed.equals(freqFmt)) {
+          return true;
+      }
+      try {
+          double val = Double.parseDouble(trimmed.replace("MHz", "").replace("mhz", "").trim());
+          if (Math.abs(val - (freqKHz / 1000.0)) < 0.001) {
+              return true;
+          }
+      } catch (NumberFormatException ignored) {
+      }
+      return false;
+   }
+
    private void stop() {
       Log.d(LOGTAG,"in stop");
+      mIsPlaybackPaused = false;
 
       if (mSession != null) {
           PlaybackState.Builder stateBuilder = new PlaybackState.Builder()
@@ -4279,10 +4359,8 @@ public class FMRadioService extends Service
     *  Read the Tuned Frequency from the FM module.
     */
    private String getTunedFrequencyString() {
-
       double frequency = FmSharedPreferences.getTunedFrequency() / 1000.0;
-      String frequencyString = getString(R.string.stat_notif_frequency, (""+frequency));
-      return frequencyString;
+      return getString(R.string.stat_notif_frequency, String.format(Locale.getDefault(), "%.1f", frequency));
    }
    public int getRssi() {
       if (mReceiver != null) {

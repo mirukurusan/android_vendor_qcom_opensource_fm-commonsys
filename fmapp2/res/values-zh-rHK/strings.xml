@@ -54,7 +54,7 @@
     <string name="preset_rename">重新命名</string>
     <string name="preset_delete">刪除</string>
     <string name="preset_search">搜尋「<xliff:g id="preset_pi">%1$s</xliff:g>」</string>
-    <string name="stat_notif_frequency">\'<xliff:g id="frequency">%1$s</xliff:g>\' MHz</string>
+    <string name="stat_notif_frequency"><xliff:g id="frequency">%1$s</xliff:g> MHz</string>
     <string name="notification_action_prev">上一台</string>
     <string name="notification_action_next">下一台</string>
     <string name="notification_action_mute">靜音</string>
