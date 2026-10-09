@@ -54,12 +54,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.caf.fmradio.R
 import com.caf.fmradio.data.FmStation
+import com.caf.fmradio.ui.components.AppTooltip
 import com.caf.fmradio.ui.components.FmControlBar
 import com.caf.fmradio.ui.components.FmDisplayCard
 import com.caf.fmradio.ui.components.FmFavoritesList
@@ -104,29 +106,35 @@ fun FmMainScreen(
                 },
                 actions = {
                     // Station List / Search Action
-                    IconButton(onClick = { showStationSheet = true }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_radio),
-                            contentDescription = "Stations"
-                        )
+                    AppTooltip(tooltip = stringResource(R.string.tooltip_stations)) {
+                        IconButton(onClick = { showStationSheet = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_radio),
+                                contentDescription = stringResource(R.string.tooltip_stations)
+                            )
+                        }
                     }
 
                     // Sleep Timer Action
-                    IconButton(onClick = { showSleepDialog = true }) {
-                        val hasTimer = uiState.sleepTimerRemainingSeconds != null
-                        Icon(
-                            painter = painterResource(R.drawable.ic_bedtime),
-                            contentDescription = "Sleep Timer",
-                            tint = if (hasTimer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    AppTooltip(tooltip = stringResource(R.string.tooltip_sleep_timer)) {
+                        IconButton(onClick = { showSleepDialog = true }) {
+                            val hasTimer = uiState.sleepTimerRemainingSeconds != null
+                            Icon(
+                                painter = painterResource(R.drawable.ic_bedtime),
+                                contentDescription = stringResource(R.string.tooltip_sleep_timer),
+                                tint = if (hasTimer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     // Settings Action
-                    IconButton(onClick = { showSettingsDialog = true }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_settings),
-                            contentDescription = "Settings"
-                        )
+                    AppTooltip(tooltip = stringResource(R.string.tooltip_settings)) {
+                        IconButton(onClick = { showSettingsDialog = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_settings),
+                                contentDescription = stringResource(R.string.tooltip_settings)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

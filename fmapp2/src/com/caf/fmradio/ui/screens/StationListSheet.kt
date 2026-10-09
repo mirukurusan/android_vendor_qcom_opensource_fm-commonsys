@@ -57,11 +57,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.caf.fmradio.R
 import com.caf.fmradio.data.FmStation
+import com.caf.fmradio.ui.components.AppTooltip
 import com.caf.fmradio.viewmodel.FmUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -261,15 +263,20 @@ private fun StationListItem(
             }
         },
         trailingContent = {
-            IconButton(onClick = onTogglePreset) {
-                Icon(
-                    painter = painterResource(
-                        if (isPreset) R.drawable.ic_star else R.drawable.ic_star_border
-                    ),
-                    contentDescription = if (isPreset) "Remove from Favorites" else "Add to Favorites",
-                    modifier = Modifier.size(24.dp),
-                    tint = if (isPreset) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                )
+            val favoriteTooltip = stringResource(
+                if (isPreset) R.string.tooltip_favorite_remove else R.string.tooltip_favorite_add
+            )
+            AppTooltip(tooltip = favoriteTooltip) {
+                IconButton(onClick = onTogglePreset) {
+                    Icon(
+                        painter = painterResource(
+                            if (isPreset) R.drawable.ic_star else R.drawable.ic_star_border
+                        ),
+                        contentDescription = favoriteTooltip,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (isPreset) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                    )
+                }
             }
         },
         colors = ListItemDefaults.colors(

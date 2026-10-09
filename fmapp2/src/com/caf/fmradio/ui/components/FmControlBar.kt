@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,18 +71,22 @@ fun FmControlBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Speaker / Headset
+            val speakerTooltip = stringResource(if (uiState.isSpeakerOn) R.string.tooltip_speaker else R.string.tooltip_headset)
             UtilityActionButton(
                 iconRes = if (uiState.isSpeakerOn) R.drawable.ic_volume_up else R.drawable.ic_headset,
-                contentDescription = if (uiState.isSpeakerOn) "Speaker" else "Headset",
+                contentDescription = speakerTooltip,
+                tooltip = speakerTooltip,
                 active = uiState.isSpeakerOn,
                 enabled = enabled,
                 onClick = onToggleSpeaker
             )
 
             // Mute / Unmute
+            val muteTooltip = stringResource(if (uiState.isMuted) R.string.tooltip_unmute else R.string.tooltip_mute)
             UtilityActionButton(
                 iconRes = if (uiState.isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up,
-                contentDescription = if (uiState.isMuted) "Unmute" else "Mute",
+                contentDescription = muteTooltip,
+                tooltip = muteTooltip,
                 active = uiState.isMuted,
                 activeContainerColor = MaterialTheme.colorScheme.errorContainer,
                 activeContentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -90,9 +95,11 @@ fun FmControlBar(
             )
 
             // Recording
+            val recordTooltip = stringResource(if (uiState.isRecording) R.string.tooltip_record_stop else R.string.tooltip_record_start)
             UtilityActionButton(
                 iconRes = if (uiState.isRecording) R.drawable.ic_stop else R.drawable.ic_fiber_manual_record,
-                contentDescription = if (uiState.isRecording) "Stop Recording" else "Record",
+                contentDescription = recordTooltip,
+                tooltip = recordTooltip,
                 active = uiState.isRecording,
                 activeContainerColor = MaterialTheme.colorScheme.errorContainer,
                 activeContentColor = MaterialTheme.colorScheme.error,
@@ -101,9 +108,11 @@ fun FmControlBar(
             )
 
             // Scan / Auto search
+            val scanTooltip = stringResource(if (uiState.isScanning) R.string.tooltip_scan_stop else R.string.tooltip_scan_start)
             UtilityActionButton(
                 iconRes = if (uiState.isScanning) R.drawable.ic_search_off else R.drawable.ic_search,
-                contentDescription = if (uiState.isScanning) "Stop Scan" else "Scan",
+                contentDescription = scanTooltip,
+                tooltip = scanTooltip,
                 active = uiState.isScanning,
                 activeContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 activeContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -123,90 +132,101 @@ fun FmControlBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Seek Down (<<)
-            OutlinedIconButton(
-                onClick = { onSeek(false) },
-                enabled = enabled && !uiState.isSeeking && !uiState.isScanning,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_fast_rewind),
-                    contentDescription = "Seek Down",
-                    modifier = Modifier.size(24.dp)
-                )
+            AppTooltip(tooltip = stringResource(R.string.tooltip_seek_down)) {
+                OutlinedIconButton(
+                    onClick = { onSeek(false) },
+                    enabled = enabled && !uiState.isSeeking && !uiState.isScanning,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_fast_rewind),
+                        contentDescription = stringResource(R.string.tooltip_seek_down),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             // Step Down (-)
-            OutlinedIconButton(
-                onClick = { onStep(false) },
-                enabled = enabled,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_chevron_left),
-                    contentDescription = "Step Down",
-                    modifier = Modifier.size(24.dp)
-                )
+            AppTooltip(tooltip = stringResource(R.string.tooltip_step_down)) {
+                OutlinedIconButton(
+                    onClick = { onStep(false) },
+                    enabled = enabled,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_chevron_left),
+                        contentDescription = stringResource(R.string.tooltip_step_down),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             // Central Power / Play Button
-            FilledIconButton(
-                onClick = onTogglePower,
-                modifier = Modifier.size(72.dp),
-                shape = CircleShape,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = if (uiState.isPoweredOn) {
-                        MaterialTheme.colorScheme.primary
+            val powerTooltip = stringResource(if (uiState.isPoweredOn) R.string.tooltip_power_off else R.string.tooltip_power_on)
+            AppTooltip(tooltip = powerTooltip) {
+                FilledIconButton(
+                    onClick = onTogglePower,
+                    modifier = Modifier.size(72.dp),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (uiState.isPoweredOn) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        }
+                    )
+                ) {
+                    val tint = if (uiState.isPoweredOn) {
+                        MaterialTheme.colorScheme.onPrimary
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     }
-                )
-            ) {
-                val tint = if (uiState.isPoweredOn) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_power_settings_new),
-                        contentDescription = if (uiState.isPoweredOn) "Power Off" else "Power On",
-                        modifier = Modifier.size(28.dp),
-                        tint = tint
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = if (uiState.isPoweredOn) "ON" else "OFF",
-                        color = tint,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_power_settings_new),
+                            contentDescription = powerTooltip,
+                            modifier = Modifier.size(28.dp),
+                            tint = tint
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (uiState.isPoweredOn) "ON" else "OFF",
+                            color = tint,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
             // Step Up (+)
-            OutlinedIconButton(
-                onClick = { onStep(true) },
-                enabled = enabled,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_chevron_right),
-                    contentDescription = "Step Up",
-                    modifier = Modifier.size(24.dp)
-                )
+            AppTooltip(tooltip = stringResource(R.string.tooltip_step_up)) {
+                OutlinedIconButton(
+                    onClick = { onStep(true) },
+                    enabled = enabled,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_chevron_right),
+                        contentDescription = stringResource(R.string.tooltip_step_up),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             // Seek Up (>>)
-            OutlinedIconButton(
-                onClick = { onSeek(true) },
-                enabled = enabled && !uiState.isSeeking && !uiState.isScanning,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_fast_forward),
-                    contentDescription = "Seek Up",
-                    modifier = Modifier.size(24.dp)
-                )
+            AppTooltip(tooltip = stringResource(R.string.tooltip_seek_up)) {
+                OutlinedIconButton(
+                    onClick = { onSeek(true) },
+                    enabled = enabled && !uiState.isSeeking && !uiState.isScanning,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_fast_forward),
+                        contentDescription = stringResource(R.string.tooltip_seek_up),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }
@@ -216,6 +236,7 @@ fun FmControlBar(
 private fun UtilityActionButton(
     iconRes: Int,
     contentDescription: String,
+    tooltip: String = contentDescription,
     active: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -234,22 +255,24 @@ private fun UtilityActionButton(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    FilledIconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.size(44.dp),
-        shape = CircleShape,
-        colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.38f),
-            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-        )
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(22.dp)
-        )
+    AppTooltip(tooltip = tooltip) {
+        FilledIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier.size(44.dp),
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = containerColor,
+                contentColor = contentColor,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.38f),
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                modifier = Modifier.size(22.dp)
+            )
+        }
     }
 }
