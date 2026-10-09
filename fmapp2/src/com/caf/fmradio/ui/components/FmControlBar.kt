@@ -16,10 +16,7 @@
 
 package com.caf.fmradio.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,28 +24,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.caf.fmradio.R
-import com.caf.fmradio.ui.theme.RadioRecordingRed
 import com.caf.fmradio.viewmodel.FmUiState
 
 @Composable
@@ -70,6 +61,59 @@ fun FmControlBar(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Secondary Utility Actions Row (Speaker, Mute, Record, Scan)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Speaker / Headset
+            UtilityActionButton(
+                iconRes = if (uiState.isSpeakerOn) R.drawable.ic_volume_up else R.drawable.ic_headset,
+                contentDescription = if (uiState.isSpeakerOn) "Speaker" else "Headset",
+                active = uiState.isSpeakerOn,
+                enabled = enabled,
+                onClick = onToggleSpeaker
+            )
+
+            // Mute / Unmute
+            UtilityActionButton(
+                iconRes = if (uiState.isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up,
+                contentDescription = if (uiState.isMuted) "Unmute" else "Mute",
+                active = uiState.isMuted,
+                activeContainerColor = MaterialTheme.colorScheme.errorContainer,
+                activeContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                enabled = enabled,
+                onClick = onToggleMute
+            )
+
+            // Recording
+            UtilityActionButton(
+                iconRes = if (uiState.isRecording) R.drawable.ic_stop else R.drawable.ic_fiber_manual_record,
+                contentDescription = if (uiState.isRecording) "Stop Recording" else "Record",
+                active = uiState.isRecording,
+                activeContainerColor = MaterialTheme.colorScheme.errorContainer,
+                activeContentColor = MaterialTheme.colorScheme.error,
+                enabled = enabled,
+                onClick = onToggleRecording
+            )
+
+            // Scan / Auto search
+            UtilityActionButton(
+                iconRes = if (uiState.isScanning) R.drawable.ic_search_off else R.drawable.ic_search,
+                contentDescription = if (uiState.isScanning) "Stop Scan" else "Scan",
+                active = uiState.isScanning,
+                activeContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                activeContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                enabled = enabled,
+                onClick = if (uiState.isScanning) onCancelScan else onStartScan
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Main Tuning and Playback Controls Row
         Row(
             modifier = Modifier
@@ -165,112 +209,47 @@ fun FmControlBar(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Secondary Utility Bar (Speaker, Mute, Record, Scan)
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainer
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp, horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Speaker / Headset
-                UtilityButton(
-                    iconRes = if (uiState.isSpeakerOn) R.drawable.ic_volume_up else R.drawable.ic_headset,
-                    label = if (uiState.isSpeakerOn) "Speaker" else "Headset",
-                    active = uiState.isSpeakerOn,
-                    enabled = enabled,
-                    onClick = onToggleSpeaker,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Mute
-                UtilityButton(
-                    iconRes = if (uiState.isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up,
-                    label = if (uiState.isMuted) "Unmute" else "Mute",
-                    active = uiState.isMuted,
-                    activeColor = MaterialTheme.colorScheme.error,
-                    enabled = enabled,
-                    onClick = onToggleMute,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Recording
-                UtilityButton(
-                    iconRes = if (uiState.isRecording) R.drawable.ic_stop else R.drawable.ic_fiber_manual_record,
-                    label = if (uiState.isRecording) "Stop Rec" else "Record",
-                    active = uiState.isRecording,
-                    activeColor = MaterialTheme.colorScheme.error,
-                    enabled = enabled,
-                    onClick = onToggleRecording,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Scan / Auto search
-                UtilityButton(
-                    iconRes = if (uiState.isScanning) R.drawable.ic_search_off else R.drawable.ic_search,
-                    label = if (uiState.isScanning) "Stop Scan" else "Scan",
-                    active = uiState.isScanning,
-                    activeColor = MaterialTheme.colorScheme.tertiary,
-                    enabled = enabled,
-                    onClick = if (uiState.isScanning) onCancelScan else onStartScan,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun UtilityButton(
+private fun UtilityActionButton(
     iconRes: Int,
-    label: String,
+    contentDescription: String,
     active: Boolean,
     enabled: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    activeColor: Color = MaterialTheme.colorScheme.primary,
-    onClick: () -> Unit
+    activeContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    activeContentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
 ) {
-    val backgroundColor = when {
-        !enabled -> Color.Transparent
-        active -> activeColor.copy(alpha = 0.18f)
-        else -> Color.Transparent
+    val containerColor = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.38f)
+        active -> activeContainerColor
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
     val contentColor = when {
         !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-        active -> activeColor
+        active -> activeContentColor
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .background(backgroundColor)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    FilledIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.size(44.dp),
+        shape = CircleShape,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.38f),
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        )
     ) {
         Icon(
             painter = painterResource(iconRes),
-            contentDescription = label,
-            modifier = Modifier.size(22.dp),
-            tint = contentColor
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = contentColor,
-            maxLines = 1,
-            textAlign = TextAlign.Center
+            contentDescription = contentDescription,
+            modifier = Modifier.size(22.dp)
         )
     }
 }
