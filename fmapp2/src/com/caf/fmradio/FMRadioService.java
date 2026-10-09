@@ -182,6 +182,7 @@ public class FMRadioService extends Service
 
    //PhoneStateListener instances corresponding to each
    private ArrayList<Integer> mScannedFrequencies = new ArrayList<Integer>();
+   private boolean mIsScanning = false;
 
    private FmRxRdsData mFMRxRDSData=null;
    // interval after which we stop the service when idle
@@ -3400,6 +3401,7 @@ public class FMRadioService extends Service
     */
    public boolean seek(boolean up)
    {
+      mIsScanning = false;
       boolean bCommandSent=false;
       if (mReceiver != null)
       {
@@ -3439,6 +3441,7 @@ public class FMRadioService extends Service
     */
    public boolean scan(int pty)
    {
+      mIsScanning = true;
       // Clear previously scanned frequencies
       mScannedFrequencies.clear();
       boolean bCommandSent=false;
@@ -3547,6 +3550,7 @@ public class FMRadioService extends Service
    */
    public boolean cancelSearch()
    {
+      mIsScanning = false;
       boolean bCommandSent=false;
       if (mReceiver != null)
       {
@@ -3950,7 +3954,7 @@ public class FMRadioService extends Service
             if(mReceiver != null) {
                clearStationInfo();
             }
-            if (isSearchInProgress()) {
+            if (mIsScanning) {
                 mScannedFrequencies.add(frequency);
             }
             if(mCallbacks != null)
@@ -4139,6 +4143,7 @@ public class FMRadioService extends Service
       }
       public void FmRxEvSearchComplete(int frequency)
        {
+         mIsScanning = false;
          Log.d(LOGTAG, "FmRxEvSearchComplete: Tuned Frequency: " +frequency);
          try
          {

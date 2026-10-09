@@ -692,7 +692,7 @@ class FmRadioViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onSearchComplete(scannedFrequencies: List<Int>) {
         viewModelScope.launch {
-            val wasScanning = _uiState.value.isScanning || scannedFrequencies.isNotEmpty()
+            val wasScanning = _uiState.value.isScanning
             val tuned = try {
                 FmSharedPreferences.getTunedFrequency().takeIf { it > 0 } ?: _uiState.value.currentFrequencyKHz
             } catch (e: Exception) {
